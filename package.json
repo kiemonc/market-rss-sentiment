@@ -1,0 +1,26 @@
+{
+  "name": "market-rss-sentiment",
+  "version": "1.0.0",
+  "description": "RSS scraper with Pub/Sub integration for market sentiment analysis",
+  "main": "src/index.js",
+  "scripts": {
+    "start": "node src/index.js",
+    "dev": "node --watch src/index.js",
+    "test": "echo 'No tests yet'"
+  },
+  "keywords": [
+    "rss",
+    "sentiment",
+    "cloud-run",
+    "pubsub"
+  ],
+  "author": "",
+  "license": "MIT",
+  "dependencies": {
+    "@google-cloud/pubsub": "^4.0.0",
+    "dotenv": "^17.4.2",
+    "express": "^4.18.2",
+    "feedparser": "^2.2.10",
+    "node-fetch": "^2.7.0"
+  }
+}
