@@ -1,10 +1,23 @@
-const { PubSub } = require('@google-cloud/pubsub');
-const config = require('./config');
+import { PubSub, Topic } from '@google-cloud/pubsub';
+import config from './config';
 
-let pubsubClient;
-let topic;
+interface Article {
+  id: string;
+  title: string;
+  link: string;
+  description: string;
+  source: string;
+  pubDate: string;
+}
 
-async function initPubSub() {
+interface ArticlePayload extends Article {
+  fetchedAt: string;
+}
+
+let pubsubClient: PubSub;
+let topic: Topic;
+
+async function initPubSub(): Promise<void> {
   const pubsubConfig = {
     projectId: config.gcp.projectId,
   };
@@ -25,17 +38,17 @@ async function initPubSub() {
       }
     }
   } catch (err) {
-    console.warn('Could not verify topic existence:', err.message);
+    console.warn('Could not verify topic existence:', (err as Error).message);
   }
 }
 
-async function publishArticle(article) {
+async function publishArticle(article: Article): Promise<string | null> {
   if (!topic) {
     console.error('Pub/Sub not initialized. Call initPubSub() first.');
     return null;
   }
 
-  const payload = {
+  const payload: ArticlePayload = {
     id: article.id,
     title: article.title,
     link: article.link,
@@ -50,12 +63,10 @@ async function publishArticle(article) {
     console.log(`Published article "${article.title}" to Pub/Sub (messageId: ${messageId})`);
     return messageId;
   } catch (err) {
-    console.error('Failed to publish article:', err.message);
+    console.error('Failed to publish article:', (err as Error).message);
     return null;
   }
 }
 
-module.exports = {
-  initPubSub,
-  publishArticle,
-};
+export { initPubSub, publishArticle };
+export type { Article, ArticlePayload };

@@ -1,7 +1,7 @@
-const express = require('express');
-const config = require('./config');
-const { initPubSub, publishArticle } = require('./pubsub');
-const { scrapeAllFeeds } = require('./scraper');
+import express, { Request, Response } from 'express';
+import config from './config';
+import { initPubSub, publishArticle } from './pubsub';
+import { scrapeAllFeeds } from './scraper';
 
 const app = express();
 
@@ -9,11 +9,11 @@ app.use(express.json());
 
 let isRunning = false;
 
-app.get('/health', (req, res) => {
+app.get('/health', (req: Request, res: Response) => {
   res.status(200).json({ status: 'ok', timestamp: new Date().toISOString() });
 });
 
-app.post('/scrape', async (req, res) => {
+app.post('/scrape', async (req: Request, res: Response) => {
   if (isRunning) {
     return res.status(429).json({ error: 'Scrape already in progress' });
   }
@@ -44,19 +44,19 @@ app.post('/scrape', async (req, res) => {
 
     console.log(`\n=== Scrape completed: ${published}/${articles.length} articles published ===\n`);
   } catch (err) {
-    console.error('Scrape job failed:', err.message);
+    console.error('Scrape job failed:', (err as Error).message);
   } finally {
     isRunning = false;
   }
 });
 
-app.get('/scrape-status', (req, res) => {
+app.get('/scrape-status', (req: Request, res: Response) => {
   res.status(200).json({ running: isRunning, timestamp: new Date().toISOString() });
 });
 
 const PORT = config.port;
 
-async function start() {
+async function start(): Promise<void> {
   try {
     console.log('Initializing Pub/Sub...');
     await initPubSub();
@@ -69,7 +69,7 @@ async function start() {
       console.log(`Check status: GET http://localhost:${PORT}/scrape-status`);
     });
   } catch (err) {
-    console.error('Failed to start server:', err.message);
+    console.error('Failed to start server:', (err as Error).message);
     process.exit(1);
   }
 }
