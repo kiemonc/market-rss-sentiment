@@ -1,14 +1,15 @@
 # Market RSS Sentiment Analyzer
 
-RSS scraper for market news with Google Cloud Pub/Sub integration.
+RSS scraper for market news with pluggable publishers (Google Cloud Pub/Sub or local file).
 
 ## Features
 
 - 🔄 RSS feed scraping with deduplication
-- 📤 Publish articles to Google Cloud Pub/Sub
+- 📤 Pluggable publishers: Google Cloud Pub/Sub or local file
 - 🌐 Express HTTP API for local + Cloud Run
 - ⚙️ Environment-based configuration
 - 🐳 Docker-ready for Cloud Run
+- 📝 TypeScript with full type safety
 
 ## Quick Start
 
@@ -36,27 +37,24 @@ PUBSUB_TOPIC=market-articles
 
 ### 2. Build & Run
 
-**Development (with auto-rebuild):**
-
-```bash
-export PATH="/home/users/mchmielecki/.nvm/versions/node/v24.14.0/bin:$PATH"
-npm run dev
-```
-
-**Production:**
+**Development (local file publisher):**
 
 ```bash
 npm run build
 npm start
+# or with auto-rebuild:
+npm run dev
 ```
 
-Or use the helper script:
+Articles will be saved to `./articles/articles.jsonl` (JSONL format).
+
+**Production (GCP Pub/Sub):**
 
 ```bash
-./run.sh
+PUBLISHER_TYPE=gcp npm start
 ```
 
-Server starts on `http://localhost:8080`
+Ensure `GCP_PROJECT_ID` and `PUBSUB_TOPIC` are set in `.env` or environment.
 
 ### 3. Trigger Scrape
 
@@ -70,13 +68,30 @@ Check status:
 curl http://localhost:8080/scrape-status
 ```
 
-## Stack
+## Publishers
 
-- **TypeScript** — Static typing for type safety
-- **Express.js** — HTTP server
-- **Google Cloud Pub/Sub** — Async message publishing
-- **FeedParser** — RSS/Atom parsing with streaming
-- **Node-Fetch** — HTTP requests
+The app supports two publishers, selectable via `PUBLISHER_TYPE` environment variable:
+
+### File Publisher (Development - Default)
+Saves articles to JSONL file (one JSON per line) in `./articles/articles.jsonl`.
+
+```bash
+PUBLISHER_TYPE=file
+ARTICLES_OUTPUT_DIR=./articles
+```
+
+Useful for local testing, CI/CD pipelines, or demos.
+
+### Google Cloud Pub/Sub (Production)
+Publishes articles to Google Cloud Pub/Sub topic for async processing.
+
+```bash
+PUBLISHER_TYPE=gcp
+GCP_PROJECT_ID=your-gcp-project
+PUBSUB_TOPIC=market-articles
+```
+
+Perfect for serverless architectures and cloud-native deployments.
 
 - `GET /health` — Health check
 - `POST /scrape` — Start RSS scraping (async)
@@ -90,10 +105,12 @@ Environment variables:
 |----------|---------|-------------|
 | `PORT` | 8080 | HTTP server port |
 | `NODE_ENV` | development | Set to `production` for Cloud Run |
-| `GCP_PROJECT_ID` | test-project | Google Cloud Project ID |
-| `PUBSUB_TOPIC` | market-articles | Pub/Sub topic name |
+| `PUBLISHER_TYPE` | file (dev), gcp (prod) | Publisher: `file` or `gcp` |
+| `ARTICLES_OUTPUT_DIR` | ./articles | Output directory for file publisher |
+| `GCP_PROJECT_ID` | test-project | Google Cloud Project ID (for gcp publisher) |
+| `PUBSUB_TOPIC` | market-articles | Pub/Sub topic name (for gcp publisher) |
 | `RSS_FEEDS` | [] | JSON array of feed objects: `[{"name":"...", "url":"..."}]` |
-| `PUBSUB_EMULATOR_HOST` | (empty) | For local testing: `localhost:8085` |
+| `PUBSUB_EMULATOR_HOST` | (empty) | For local testing with Pub/Sub emulator: `localhost:8085` |
 
 ## Cloud Run Deployment
 

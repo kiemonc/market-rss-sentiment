@@ -8,21 +8,32 @@ interface RSSFeed {
 interface Config {
   port: number;
   nodeEnv: string;
+  publisherType: 'gcp' | 'file';
   gcp: {
     projectId: string;
     pubsubTopic: string;
+  };
+  filePublisher: {
+    outputDir: string;
   };
   rssFeeds: RSSFeed[];
   pubsubEmulatorHost: string | null;
 }
 
+const publisherType = (process.env.PUBLISHER_TYPE || (process.env.NODE_ENV === 'production' ? 'gcp' : 'file')) as 'gcp' | 'file';
+
 const config: Config = {
   port: parseInt(process.env.PORT || '8080', 10),
   nodeEnv: process.env.NODE_ENV || 'development',
+  publisherType,
 
   gcp: {
     projectId: process.env.GCP_PROJECT_ID || 'test-project',
     pubsubTopic: process.env.PUBSUB_TOPIC || 'market-articles',
+  },
+
+  filePublisher: {
+    outputDir: process.env.ARTICLES_OUTPUT_DIR || './articles',
   },
 
   rssFeeds: (() => {

@@ -1,6 +1,6 @@
 import express, { Request, Response } from 'express';
 import config from './config';
-import { initPubSub, publishArticle } from './pubsub';
+import { createPublisher, Publisher } from './publishers';
 import { scrapeAllFeeds } from './scraper';
 
 const app = express();
@@ -8,9 +8,14 @@ const app = express();
 app.use(express.json());
 
 let isRunning = false;
+let publisher: Publisher;
 
 app.get('/health', (req: Request, res: Response) => {
-  res.status(200).json({ status: 'ok', timestamp: new Date().toISOString() });
+  res.status(200).json({
+    status: 'ok',
+    timestamp: new Date().toISOString(),
+    publisher: config.publisherType,
+  });
 });
 
 app.post('/scrape', async (req: Request, res: Response) => {
@@ -23,6 +28,7 @@ app.post('/scrape', async (req: Request, res: Response) => {
 
   try {
     console.log(`\n=== Starting RSS scrape at ${new Date().toISOString()} ===`);
+    console.log(`Using publisher: ${config.publisherType}`);
     console.log(`Configured feeds: ${config.rssFeeds.length}`);
 
     if (config.rssFeeds.length === 0) {
@@ -36,7 +42,7 @@ app.post('/scrape', async (req: Request, res: Response) => {
 
     let published = 0;
     for (const article of articles) {
-      const messageId = await publishArticle(article);
+      const messageId = await publisher.publish(article);
       if (messageId) {
         published++;
       }
@@ -58,15 +64,16 @@ const PORT = config.port;
 
 async function start(): Promise<void> {
   try {
-    console.log('Initializing Pub/Sub...');
-    await initPubSub();
-    console.log('Pub/Sub initialized successfully.');
+    console.log(`\n🚀 Starting Market RSS Sentiment (${config.publisherType} publisher)`);
+
+    publisher = createPublisher(config.publisherType, config);
+    await publisher.initialize();
 
     app.listen(PORT, () => {
-      console.log(`Server running on http://localhost:${PORT}`);
-      console.log(`Health check: GET http://localhost:${PORT}/health`);
-      console.log(`Trigger scrape: POST http://localhost:${PORT}/scrape`);
-      console.log(`Check status: GET http://localhost:${PORT}/scrape-status`);
+      console.log(`\n✓ Server running on http://localhost:${PORT}`);
+      console.log(`  GET  http://localhost:${PORT}/health`);
+      console.log(`  POST http://localhost:${PORT}/scrape`);
+      console.log(`  GET  http://localhost:${PORT}/scrape-status\n`);
     });
   } catch (err) {
     console.error('Failed to start server:', (err as Error).message);
