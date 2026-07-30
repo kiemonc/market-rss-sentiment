@@ -5,11 +5,13 @@ RSS scraper for market news with pluggable publishers (Google Cloud Pub/Sub or l
 ## Features
 
 - 🔄 RSS feed scraping with deduplication
+- 📄 Full article content resolution (HTML parsing + text extraction)
 - 📤 Pluggable publishers: Google Cloud Pub/Sub or local file
 - 🌐 Express HTTP API for local + Cloud Run
 - ⚙️ Environment-based configuration
 - 🐳 Docker-ready for Cloud Run
 - 📝 TypeScript with full type safety
+- ⚡ Smart caching & rate limiting for content fetching
 
 ## Quick Start
 
