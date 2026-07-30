@@ -2,6 +2,7 @@ import express, { Request, Response } from 'express';
 import config from './config';
 import { createPublisher, Publisher } from './publishers';
 import { scrapeAllFeeds } from './scraper';
+import { resolveMultipleArticles } from './content-resolver';
 
 const app = express();
 
@@ -40,15 +41,18 @@ app.post('/scrape', async (req: Request, res: Response) => {
     const articles = await scrapeAllFeeds(config.rssFeeds);
     console.log(`\nTotal new articles fetched: ${articles.length}`);
 
+    // Resolve full content for each article
+    const articlesWithContent = await resolveMultipleArticles(articles);
+
     let published = 0;
-    for (const article of articles) {
+    for (const article of articlesWithContent) {
       const messageId = await publisher.publish(article);
       if (messageId) {
         published++;
       }
     }
 
-    console.log(`\n=== Scrape completed: ${published}/${articles.length} articles published ===\n`);
+    console.log(`\n=== Scrape completed: ${published}/${articlesWithContent.length} articles published ===\n`);
   } catch (err) {
     console.error('Scrape job failed:', (err as Error).message);
   } finally {

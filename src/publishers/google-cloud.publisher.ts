@@ -1,5 +1,5 @@
 import { PubSub, Topic } from '@google-cloud/pubsub';
-import { Article } from '../pubsub';
+import { ArticleWithContent } from '../pubsub';
 import { Publisher } from './publisher.interface';
 
 export class GoogleCloudPublisher implements Publisher {
@@ -22,14 +22,16 @@ export class GoogleCloudPublisher implements Publisher {
     }
   }
 
-  async publish(article: Article): Promise<string | null> {
+  async publish(article: ArticleWithContent): Promise<string | null> {
     const payload = {
       id: article.id,
       title: article.title,
       link: article.link,
       description: article.description,
+      content: article.content,
       source: article.source,
       pubDate: article.pubDate,
+      contentFetchedAt: article.contentFetchedAt,
       fetchedAt: new Date().toISOString(),
     };
 
@@ -43,3 +45,4 @@ export class GoogleCloudPublisher implements Publisher {
     }
   }
 }
+

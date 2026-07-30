@@ -7,8 +7,13 @@ interface Article {
   pubDate: string;
 }
 
-interface ArticlePayload extends Article {
+interface ArticleWithContent extends Article {
+  content: string;
+  contentFetchedAt?: string;
+}
+
+interface ArticlePayload extends ArticleWithContent {
   fetchedAt: string;
 }
 
-export type { Article, ArticlePayload };
+export type { Article, ArticleWithContent, ArticlePayload };
