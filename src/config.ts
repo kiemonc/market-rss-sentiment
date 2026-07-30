@@ -30,7 +30,9 @@ const config: Config = {
     try {
       return JSON.parse(feedsJson) as RSSFeed[];
     } catch (e) {
-      console.warn('Invalid RSS_FEEDS JSON, using empty array', (e as Error).message);
+      console.warn('Invalid RSS_FEEDS JSON:', (e as Error).message);
+      console.warn('Expected format: RSS_FEEDS=\'[{"name":"feed1","url":"https://..."}]\'');
+      console.warn('Or as: RSS_FEEDS=[{"name":"feed1","url":"https://..."}]');
       return [];
     }
   })(),
