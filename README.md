@@ -29,20 +29,34 @@ cp .env.example .env
 Edit `.env` with your RSS feeds (JSON format):
 
 ```env
-RSS_FEEDS=[{"name":"cnbc","url":"https://www.cnbc.com/id/100003114/device/rss/rss.html"}]
+RSS_FEEDS=[{"name":"bloomberg","url":"https://feeds.bloomberg.com/markets/news.rss"}]
 GCP_PROJECT_ID=your-gcp-project
 PUBSUB_TOPIC=market-articles
 ```
 
-### 2. Run Locally
+### 2. Build & Run
+
+**Development (with auto-rebuild):**
+
+```bash
+export PATH="/home/users/mchmielecki/.nvm/versions/node/v24.14.0/bin:$PATH"
+npm run dev
+```
+
+**Production:**
+
+```bash
+npm run build
+npm start
+```
+
+Or use the helper script:
 
 ```bash
 ./run.sh
 ```
 
 Server starts on `http://localhost:8080`
-
-**Note:** On systems with NVM, use `./run.sh` which auto-configures the PATH. For standard Node.js setups, use `npm start`.
 
 ### 3. Trigger Scrape
 
@@ -56,7 +70,13 @@ Check status:
 curl http://localhost:8080/scrape-status
 ```
 
-## API Endpoints
+## Stack
+
+- **TypeScript** — Static typing for type safety
+- **Express.js** — HTTP server
+- **Google Cloud Pub/Sub** — Async message publishing
+- **FeedParser** — RSS/Atom parsing with streaming
+- **Node-Fetch** — HTTP requests
 
 - `GET /health` — Health check
 - `POST /scrape` — Start RSS scraping (async)
