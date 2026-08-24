@@ -2,8 +2,15 @@ resource "random_id" "source_bucket_suffix" {
   byte_length = 4
 }
 
+locals {
+  # GCS bucket names are capped at 63 chars; leave room for the "-" + 8 hex
+  # char suffix that keeps the name globally unique.
+  source_bucket_prefix = substr("${var.project_id}-${var.function_name}-src", 0, 54)
+  source_bucket_name   = "${local.source_bucket_prefix}-${random_id.source_bucket_suffix.hex}"
+}
+
 resource "google_storage_bucket" "function_source" {
-  name                        = "${var.project_id}-${var.function_name}-source-${random_id.source_bucket_suffix.hex}"
+  name                        = local.source_bucket_name
   location                    = var.region
   project                     = var.project_id
   uniform_bucket_level_access = true

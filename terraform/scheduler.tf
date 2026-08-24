@@ -4,7 +4,9 @@ resource "google_cloud_scheduler_job" "trigger_scrape" {
   region           = var.region
   schedule         = var.schedule
   time_zone        = var.schedule_time_zone
-  attempt_deadline = "${var.timeout_seconds}s"
+  # Cloud Scheduler caps attempt_deadline at 30 minutes, even though the
+  # function itself may allow up to 60 (timeout_seconds).
+  attempt_deadline = "${min(var.timeout_seconds, 1800)}s"
 
   http_target {
     uri         = google_cloudfunctions2_function.scraper.url
