@@ -9,12 +9,14 @@ resource "google_cloud_scheduler_job" "trigger_scrape" {
   attempt_deadline = "${min(var.timeout_seconds, 1800)}s"
 
   http_target {
-    uri         = google_cloudfunctions2_function.scraper.url
+    uri         = "${google_cloudfunctions2_function.scraper.url}/scrape"
     http_method = "POST"
 
     oidc_token {
       service_account_email = google_service_account.scheduler_invoker.email
-      audience              = google_cloudfunctions2_function.scraper.url
+      # Audience must be the function's base URL (no path) for Cloud Run's
+      # OIDC check to validate the token, even though uri includes /scrape.
+      audience = google_cloudfunctions2_function.scraper.url
     }
   }
 
