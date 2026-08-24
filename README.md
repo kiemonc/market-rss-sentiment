@@ -97,8 +97,21 @@ PUBSUB_TOPIC=market-articles
 Perfect for serverless architectures and cloud-native deployments.
 
 - `GET /health` — Health check
-- `POST /scrape` — Start RSS scraping (async)
-- `GET /scrape-status` — Check if scrape is running
+- `POST /scrape` — Run a full RSS scrape (runs to completion before responding)
+- `GET /scrape-status` — Check if a scrape is running
+
+## Testing
+
+```bash
+npm test          # run once
+npm run test:watch
+```
+
+Unit tests (Vitest) cover the scraper, content resolver, both publishers, the consumer,
+config parsing, and the Express routes — with `node-fetch`, `@google-cloud/pubsub`, and
+`@google-cloud/firestore` mocked out, so there's no network or GCP dependency. Test files
+live next to the code they cover (`src/**/*.test.ts`) and are excluded from the production
+build (see `tsconfig.json`).
 
 ## Configuration
 

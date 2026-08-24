@@ -9,7 +9,8 @@
     "start": "functions-framework --target=app --source=dist --port=8080",
     "dev": "npm run build && npm run start",
     "watch": "tsc --watch",
-    "test": "echo 'No tests yet'"
+    "test": "vitest run",
+    "test:watch": "vitest"
   },
   "keywords": [
     "rss",
@@ -34,7 +35,10 @@
     "@types/feedparser": "^2.2.8",
     "@types/node": "^26.1.2",
     "@types/node-fetch": "^2.6.13",
+    "@types/supertest": "^7.2.1",
+    "supertest": "^7.2.2",
     "ts-node": "^10.9.2",
-    "typescript": "^7.0.2"
+    "typescript": "^7.0.2",
+    "vitest": "^4.1.11"
   }
 }

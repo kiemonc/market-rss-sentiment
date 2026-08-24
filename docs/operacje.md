@@ -61,9 +61,26 @@ oraz ścieżka błędu trwałego przy `--message='not valid json'`) był wykonan
 Rewizja warta rozważenia, gdyby to miał być system współdzielony/produkcyjny z realnym SLA na
 brak utraty wiadomości.
 
+## Testy automatyczne
+
+```bash
+npm test          # jednorazowo (vitest run)
+npm run test:watch
+```
+
+Vitest, tylko testy jednostkowe (bez sieci/GCP — `node-fetch`, `@google-cloud/pubsub`,
+`@google-cloud/firestore` zamockowane). 47 testów pokrywających: scraper (parsowanie RSS,
+dedup, obsługa błędów per-feed), content-resolver (selektory HTML, cache, fallback),
+oba publishery, `createPublisher`, config (parsowanie env), konsument (wszystkie ścieżki
+błędów + idempotencja) i endpointy Express w `src/index.ts` (przez `supertest`, włącznie
+z odrzuceniem współbieżnego `/scrape` kodem 429). Pliki testowe leżą obok kodu
+(`src/**/*.test.ts`) i są wykluczone z `tsconfig.json` `exclude`, więc nie trafiają do
+`dist/`/wdrożenia.
+
 ## Co dalej (nie zaimplementowane)
 
 - Sentiment analysis nad artykułami w Firestore (obecnie tylko archiwizacja)
-- Testy automatyczne
+- Testy integracyjne na emulatorach (Pub/Sub + Firestore) — świadomie pominięte na razie,
+  obecne testy jednostkowe wystarczają na tym etapie
 - Remote state backend dla Terraform (obecnie lokalny `terraform.tfstate`)
 - Dedup globalny między zimnymi startami scrapera (patrz Ograniczenia w architektura.md)

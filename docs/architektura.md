@@ -86,6 +86,5 @@ Logika błędów w handlerze (rozróżnienie na poziomie kodu, nie samego `retry
   nie na tym mechanizmie. Firestore z kolei dedupuje poprawnie i trwale, bo doc ID = `id`.
 - Sentiment analysis (wspomniany w opisie projektu i `architecture.drawio`) **nie jest
   zaimplementowany** — obecny konsument tylko archiwizuje artykuły do Firestore.
-- Brak testów automatycznych (`npm test` to placeholder).
 - `FilePublisher` (tryb `file`) nie jest używany w żadnym wdrożeniu na GCP — istnieje tylko
   do lokalnego dev/demo.
