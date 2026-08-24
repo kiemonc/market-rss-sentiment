@@ -117,9 +117,11 @@ Environment variables:
 
 ## GCP Deployment (Cloud Functions 2nd gen, via Terraform)
 
-The app deploys as a Cloud Function (2nd gen), triggered on a schedule by Cloud
-Scheduler and publishing to Pub/Sub. Everything (function, topic, service accounts,
-scheduler job, IAM) is provisioned with Terraform — see [`terraform/`](./terraform):
+The app deploys as two Cloud Functions (2nd gen): the scraper, triggered on a schedule
+by Cloud Scheduler and publishing to Pub/Sub, and a consumer, triggered directly by
+that Pub/Sub topic, which writes each article into Firestore. Everything (functions,
+topic, Firestore database, service accounts, scheduler job, IAM) is provisioned with
+Terraform — see [`terraform/`](./terraform):
 
 ```bash
 cd terraform
@@ -158,11 +160,14 @@ npm start
 ## Architecture
 
 ```
-RSS Feeds → Scraper → Deduplication → Pub/Sub Topic → Subscribers
+RSS Feeds → Scraper → Deduplication → Pub/Sub Topic → Consumer → Firestore
 ```
 
 - **Scraper** fetches RSS feeds concurrently
 - **Deduplication** uses MD5 hash of title+link to avoid duplicates
 - **Pub/Sub** decouples scraping from processing (sentiment analysis, storage, etc.)
+- **Consumer** (`src/consumer.ts`) writes each article to Firestore (`articles/{id}`,
+  upserted so redelivery is idempotent); further processing (e.g. sentiment analysis)
+  can subscribe to the same topic independently
 
 Link do diagramu architektury: https://app.diagrams.net/#Hkiemonc%2Fmarket-rss-sentiment%2Fmain%2Farchitecture.drawio
