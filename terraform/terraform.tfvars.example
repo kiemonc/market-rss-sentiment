@@ -1,0 +1,15 @@
+project_id = "your-gcp-project-id"
+region     = "us-central1"
+
+pubsub_topic = "market-articles"
+
+rss_feeds = [
+  { name = "bloomberg", url = "https://feeds.bloomberg.com/markets/news.rss" },
+  { name = "cnbc", url = "https://www.cnbc.com/id/100003114/device/rss/rss.html" },
+  { name = "coindesk", url = "https://www.coindesk.com/feed/" },
+]
+
+schedule            = "0 */6 * * *"
+schedule_time_zone  = "Etc/UTC"
+
+allow_unauthenticated = false

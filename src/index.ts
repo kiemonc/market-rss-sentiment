@@ -1,4 +1,5 @@
 import express, { Request, Response } from 'express';
+import { http } from '@google-cloud/functions-framework';
 import config from './config';
 import { createPublisher, Publisher } from './publishers';
 import { scrapeAllFeeds } from './scraper';
@@ -10,6 +11,20 @@ app.use(express.json());
 
 let isRunning = false;
 let publisher: Publisher;
+let publisherInit: Promise<Publisher> | null = null;
+
+// Cloud Functions instances are ephemeral between invocations, so the publisher
+// is created lazily on first request and reused by warm instances.
+function getPublisher(): Promise<Publisher> {
+  if (!publisherInit) {
+    publisherInit = (async () => {
+      publisher = createPublisher(config.publisherType, config);
+      await publisher.initialize();
+      return publisher;
+    })();
+  }
+  return publisherInit;
+}
 
 app.get('/health', (req: Request, res: Response) => {
   res.status(200).json({
@@ -19,13 +34,14 @@ app.get('/health', (req: Request, res: Response) => {
   });
 });
 
+// Runs synchronously to completion before responding: Cloud Functions gives no
+// guarantee that background work continues after a response is sent.
 app.post('/scrape', async (req: Request, res: Response) => {
   if (isRunning) {
     return res.status(429).json({ error: 'Scrape already in progress' });
   }
 
   isRunning = true;
-  res.status(202).json({ message: 'Scrape job started', status_url: '/scrape-status' });
 
   try {
     console.log(`\n=== Starting RSS scrape at ${new Date().toISOString()} ===`);
@@ -34,9 +50,10 @@ app.post('/scrape', async (req: Request, res: Response) => {
 
     if (config.rssFeeds.length === 0) {
       console.warn('No RSS feeds configured in RSS_FEEDS environment variable.');
-      isRunning = false;
-      return;
+      return res.status(200).json({ message: 'No RSS feeds configured', published: 0, total: 0 });
     }
+
+    const activePublisher = await getPublisher();
 
     const articles = await scrapeAllFeeds(config.rssFeeds);
     console.log(`\nTotal new articles fetched: ${articles.length}`);
@@ -46,15 +63,17 @@ app.post('/scrape', async (req: Request, res: Response) => {
 
     let published = 0;
     for (const article of articlesWithContent) {
-      const messageId = await publisher.publish(article);
+      const messageId = await activePublisher.publish(article);
       if (messageId) {
         published++;
       }
     }
 
     console.log(`\n=== Scrape completed: ${published}/${articlesWithContent.length} articles published ===\n`);
+    res.status(200).json({ message: 'Scrape completed', published, total: articlesWithContent.length });
   } catch (err) {
     console.error('Scrape job failed:', (err as Error).message);
+    res.status(500).json({ error: 'Scrape job failed', message: (err as Error).message });
   } finally {
     isRunning = false;
   }
@@ -64,25 +83,9 @@ app.get('/scrape-status', (req: Request, res: Response) => {
   res.status(200).json({ running: isRunning, timestamp: new Date().toISOString() });
 });
 
-const PORT = config.port;
+// Registers `app` as the Cloud Functions (2nd gen) HTTP entry point.
+// The functions-framework runtime owns the HTTP server on Cloud Functions;
+// for local development, use `npm run dev` / `npm start` (see package.json).
+http('app', app);
 
-async function start(): Promise<void> {
-  try {
-    console.log(`\n🚀 Starting Market RSS Sentiment (${config.publisherType} publisher)`);
-
-    publisher = createPublisher(config.publisherType, config);
-    await publisher.initialize();
-
-    app.listen(PORT, () => {
-      console.log(`\n✓ Server running on http://localhost:${PORT}`);
-      console.log(`  GET  http://localhost:${PORT}/health`);
-      console.log(`  POST http://localhost:${PORT}/scrape`);
-      console.log(`  GET  http://localhost:${PORT}/scrape-status\n`);
-    });
-  } catch (err) {
-    console.error('Failed to start server:', (err as Error).message);
-    process.exit(1);
-  }
-}
-
-start();
+export { app };

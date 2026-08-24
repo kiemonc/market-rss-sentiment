@@ -5,8 +5,9 @@
   "main": "dist/index.js",
   "scripts": {
     "build": "tsc",
-    "start": "node dist/index.js",
-    "dev": "ts-node src/index.ts",
+    "gcp-build": "tsc",
+    "start": "functions-framework --target=app --source=dist --port=8080",
+    "dev": "npm run build && npm run start",
     "watch": "tsc --watch",
     "test": "echo 'No tests yet'"
   },
@@ -19,6 +20,7 @@
   "author": "",
   "license": "MIT",
   "dependencies": {
+    "@google-cloud/functions-framework": "^3.4.0",
     "@google-cloud/pubsub": "^4.0.0",
     "cheerio": "^1.2.0",
     "dotenv": "^17.4.2",

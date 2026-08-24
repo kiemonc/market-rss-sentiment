@@ -7,9 +7,9 @@ RSS scraper for market news with pluggable publishers (Google Cloud Pub/Sub or l
 - 🔄 RSS feed scraping with deduplication
 - 📄 Full article content resolution (HTML parsing + text extraction)
 - 📤 Pluggable publishers: Google Cloud Pub/Sub or local file
-- 🌐 Express HTTP API for local + Cloud Run
+- 🌐 Express-based HTTP API, deployed as a Cloud Function (2nd gen)
 - ⚙️ Environment-based configuration
-- 🐳 Docker-ready for Cloud Run
+- ☁️ Terraform-managed GCP deployment (Cloud Functions, Pub/Sub, Cloud Scheduler)
 - 📝 TypeScript with full type safety
 - ⚡ Smart caching & rate limiting for content fetching
 
@@ -39,21 +39,22 @@ PUBSUB_TOPIC=market-articles
 
 ### 2. Build & Run
 
+The app is a Cloud Functions (2nd gen) HTTP function, served locally via the
+[Functions Framework](https://github.com/GoogleCloudPlatform/functions-framework-nodejs):
+
 **Development (local file publisher):**
 
 ```bash
-npm run build
-npm start
-# or with auto-rebuild:
 npm run dev
+# builds, then serves on http://localhost:8080 via functions-framework
 ```
 
 Articles will be saved to `./articles/articles.jsonl` (JSONL format).
 
-**Production (GCP Pub/Sub):**
+**Production-like (GCP Pub/Sub):**
 
 ```bash
-PUBLISHER_TYPE=gcp npm start
+PUBLISHER_TYPE=gcp npm run dev
 ```
 
 Ensure `GCP_PROJECT_ID` and `PUBSUB_TOPIC` are set in `.env` or environment.
@@ -114,44 +115,30 @@ Environment variables:
 | `RSS_FEEDS` | [] | JSON array of feed objects: `[{"name":"...", "url":"..."}]` |
 | `PUBSUB_EMULATOR_HOST` | (empty) | For local testing with Pub/Sub emulator: `localhost:8085` |
 
-## Cloud Run Deployment
+## GCP Deployment (Cloud Functions 2nd gen, via Terraform)
 
-### Prerequisites
-
-- Google Cloud Project with Cloud Run enabled
-- Create Pub/Sub topic: `gcloud pubsub topics create market-articles`
-
-### Build & Deploy
+The app deploys as a Cloud Function (2nd gen), triggered on a schedule by Cloud
+Scheduler and publishing to Pub/Sub. Everything (function, topic, service accounts,
+scheduler job, IAM) is provisioned with Terraform — see [`terraform/`](./terraform):
 
 ```bash
-# Build image
-docker build -t gcr.io/YOUR_PROJECT/market-rss-sentiment .
+cd terraform
+cp terraform.tfvars.example terraform.tfvars
+# edit terraform.tfvars: project_id, rss_feeds, schedule, ...
 
-# Push to Container Registry
-docker push gcr.io/YOUR_PROJECT/market-rss-sentiment
-
-# Deploy to Cloud Run
-gcloud run deploy market-rss-sentiment \
-  --image gcr.io/YOUR_PROJECT/market-rss-sentiment \
-  --platform managed \
-  --region us-central1 \
-  --memory 512Mi \
-  --timeout 3600 \
-  --set-env-vars GCP_PROJECT_ID=YOUR_PROJECT,PUBSUB_TOPIC=market-articles,RSS_FEEDS='[{"name":"cnbc","url":"https://www.cnbc.com/id/100003114/device/rss/rss.html"}]'
+terraform init
+terraform apply
 ```
 
-### Schedule Scrapes
+`/scrape` runs synchronously to completion (bounded by `timeout_seconds`, default
+3600s) rather than the fire-and-forget pattern used for a long-lived server — Cloud
+Functions instances aren't guaranteed to keep running after a response is sent.
 
-Use Cloud Scheduler to trigger `/scrape` endpoint:
+Full details, including how to redeploy after code changes and how to trigger a
+manual run, are in [`terraform/README.md`](./terraform/README.md).
 
-```bash
-gcloud scheduler jobs create http scrape-market-news \
-  --location=us-central1 \
-  --schedule="0 */6 * * *" \
-  --uri=https://YOUR_SERVICE_URL/scrape \
-  --http-method=POST \
-  --oidc-service-account-email=YOUR_SERVICE_ACCOUNT
-```
+The `Dockerfile` is kept only for local container testing (`docker build . && docker
+run -p 8080:8080 <image>`) — it is not part of the GCP deployment path.
 
 ## Local Development with Pub/Sub Emulator
 
