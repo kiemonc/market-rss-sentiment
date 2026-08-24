@@ -87,3 +87,57 @@ variable "source_dir" {
   type        = string
   default     = ".."
 }
+
+variable "firestore_location" {
+  description = "Firestore database location (region or multi-region id, e.g. 'us-central1', 'nam5')."
+  type        = string
+  default     = "us-central1"
+}
+
+variable "firestore_collection" {
+  description = "Firestore collection articles are written to."
+  type        = string
+  default     = "articles"
+}
+
+variable "consumer_function_name" {
+  description = "Name of the Pub/Sub-triggered Firestore consumer Cloud Function."
+  type        = string
+  default     = "market-rss-sentiment-consumer"
+}
+
+variable "consumer_available_memory" {
+  description = "Memory allocated to the consumer function."
+  type        = string
+  default     = "256Mi"
+}
+
+variable "consumer_available_cpu" {
+  description = "vCPUs allocated to the consumer function."
+  type        = string
+  default     = "1"
+}
+
+variable "consumer_timeout_seconds" {
+  description = "Per-invocation timeout for the consumer function."
+  type        = number
+  default     = 60
+}
+
+variable "consumer_min_instance_count" {
+  description = "Minimum warm instances for the consumer function."
+  type        = number
+  default     = 0
+}
+
+variable "consumer_max_instance_count" {
+  description = "Maximum concurrent instances for the consumer function."
+  type        = number
+  default     = 5
+}
+
+variable "consumer_retry_policy" {
+  description = "RETRY_POLICY_RETRY or RETRY_POLICY_DO_NOT_RETRY for the Pub/Sub event trigger."
+  type        = string
+  default     = "RETRY_POLICY_RETRY"
+}

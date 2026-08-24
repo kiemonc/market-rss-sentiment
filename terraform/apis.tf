@@ -9,6 +9,7 @@ locals {
     "cloudscheduler.googleapis.com",
     "storage.googleapis.com",
     "iam.googleapis.com",
+    "firestore.googleapis.com",
   ]
 }
 

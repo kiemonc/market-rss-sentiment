@@ -22,3 +22,18 @@ output "scheduler_job" {
   description = "Name of the Cloud Scheduler job triggering /scrape."
   value       = google_cloud_scheduler_job.trigger_scrape.name
 }
+
+output "consumer_function_name" {
+  description = "Name of the Firestore consumer Cloud Function."
+  value       = google_cloudfunctions2_function.consumer.name
+}
+
+output "consumer_service_account" {
+  description = "Runtime service account email used by the consumer function."
+  value       = google_service_account.consumer_runtime.email
+}
+
+output "firestore_database" {
+  description = "Firestore database name/id backing article storage."
+  value       = google_firestore_database.default.name
+}
