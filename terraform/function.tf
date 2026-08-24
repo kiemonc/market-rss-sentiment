@@ -4,7 +4,7 @@ resource "google_cloudfunctions2_function" "scraper" {
   project  = var.project_id
 
   build_config {
-    runtime     = "nodejs20"
+    runtime     = "nodejs24"
     entry_point = "app" # matches functions.http('app', app) in src/index.ts
 
     source {
