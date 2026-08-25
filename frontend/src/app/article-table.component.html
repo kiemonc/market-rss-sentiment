@@ -1,0 +1,32 @@
+<div class="table-container">
+  <table mat-table [dataSource]="dataSource" matSort class="article-table">
+    <ng-container matColumnDef="title">
+      <th mat-header-cell *matHeaderCellDef mat-sort-header>Title</th>
+      <td mat-cell *matCellDef="let article">{{ article.title }}</td>
+    </ng-container>
+
+    <ng-container matColumnDef="source">
+      <th mat-header-cell *matHeaderCellDef mat-sort-header>Source</th>
+      <td mat-cell *matCellDef="let article" class="source-cell">{{ article.source }}</td>
+    </ng-container>
+
+    <ng-container matColumnDef="pubDate">
+      <th mat-header-cell *matHeaderCellDef mat-sort-header>Published</th>
+      <td mat-cell *matCellDef="let article">{{ article.pubDate | date: 'short' }}</td>
+    </ng-container>
+
+    <tr mat-header-row *matHeaderRowDef="displayedColumns"></tr>
+    <tr
+      mat-row
+      *matRowDef="let article; columns: displayedColumns"
+      class="article-row"
+      (click)="openArticle(article)"
+    ></tr>
+
+    <tr class="mat-row" *matNoDataRow>
+      <td class="mat-cell no-data" [attr.colspan]="displayedColumns.length">No articles yet.</td>
+    </tr>
+  </table>
+
+  <mat-paginator [pageSizeOptions]="[10, 25, 50]" [pageSize]="10" showFirstLastButtons></mat-paginator>
+</div>

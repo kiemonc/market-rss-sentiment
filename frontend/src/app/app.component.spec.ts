@@ -1,13 +1,12 @@
+import { provideRouter } from '@angular/router';
 import { TestBed } from '@angular/core/testing';
 import { AppComponent } from './app.component';
-import { ArticleService } from './article.service';
-import { of } from 'rxjs';
 
 describe('AppComponent', () => {
   beforeEach(async () => {
     await TestBed.configureTestingModule({
       imports: [AppComponent],
-      providers: [{ provide: ArticleService, useValue: { watchArticles: () => of([]) } }],
+      providers: [provideRouter([])],
     }).compileComponents();
   });
 

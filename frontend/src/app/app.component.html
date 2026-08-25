@@ -1,14 +1,8 @@
 <div class="layout">
   <header class="header">
-    <h1>Market articles</h1>
+    <h1><a routerLink="/">Market articles</a></h1>
   </header>
   <main class="content">
-    <app-article-list
-      class="pane list-pane"
-      [articles]="articles()"
-      [selectedId]="selected()?.id ?? null"
-      (select)="select($event)"
-    />
-    <app-article-preview class="pane preview-pane" [article]="selected()" />
+    <router-outlet />
   </main>
 </div>

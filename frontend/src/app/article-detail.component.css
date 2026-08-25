@@ -1,0 +1,15 @@
+.detail-page {
+  height: 100%;
+  overflow-y: auto;
+}
+
+.back-link {
+  display: inline-block;
+  padding: 1rem 1.5rem 0;
+  color: #1a73e8;
+  text-decoration: none;
+}
+
+.back-link:hover {
+  text-decoration: underline;
+}
