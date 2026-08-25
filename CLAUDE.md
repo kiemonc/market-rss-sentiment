@@ -54,6 +54,16 @@ Other structural points:
 - Terraform provisions both functions from one `data.archive_file` zip of the
   whole repo (`terraform/storage.tf`) — a code change forces a new zip hash and
   redeploys both functions on the next `apply`, even if only one of them changed.
+  `frontend/` is excluded from that zip (it's a separate Angular app, deployed to
+  Firebase Hosting, not part of the Cloud Functions source) — keep it excluded if
+  you add more top-level directories.
+- `frontend/` is a standalone Angular app that reads `articles` straight from
+  Firestore via the client Firebase SDK (no backend API). `terraform/firebase.tf`
+  registers its Firebase Web App, generates its `environment.ts`/`firebase.json`,
+  deploys `frontend/firestore.rules`, and builds + deploys it to Firebase Hosting
+  via a `local-exec` provisioner (the Google provider can't upload Hosting content
+  itself). See `frontend/README.md` and the "Frontend (Firebase)" section of
+  `terraform/README.md`.
 - Tests are colocated (`src/**/*.test.ts`), Vitest, and excluded from
   `tsconfig.json`'s `include` so they never end up in the production build/deploy
   zip. `@google-cloud/pubsub` and `@google-cloud/firestore` are mocked with real

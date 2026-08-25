@@ -21,6 +21,13 @@ Firestore:
   is granted only to the scheduler's service account (set `allow_unauthenticated = true`
   to change that); the consumer's is granted only to its own service account (Eventarc
   invokes through it) and its `ingress_settings` is `ALLOW_INTERNAL_ONLY`
+- `firebase.tf`: Firebase for the `../frontend` Angular app — registers a Firebase Web
+  App, writes its real SDK config into `frontend/src/environments/environment.ts`,
+  deploys `frontend/firestore.rules` (public read / no write on `articles`), and builds
+  + deploys `frontend/dist` to a Firebase Hosting site via a `local-exec` provisioner
+  (the `google_firebase_hosting_version` resource only manages rewrites/headers, not
+  actual file content — the Terraform Google provider cannot upload static assets on
+  its own, so this shells out to the Firebase CLI)
 
 ## Prerequisites
 
@@ -43,6 +50,20 @@ terraform apply
 
 Terraform enables the required APIs itself (`apis.tf`), so a fresh project works too —
 first `apply` may take a few minutes while APIs propagate.
+
+## Frontend (Firebase)
+
+`apply` also provisions `../frontend`: run `npm install` there once beforehand (the
+`local-exec` provisioner runs `npm run build`, it doesn't install dependencies), then
+`terraform apply` will register the Firebase Web App, deploy the Firestore rules, and
+build + deploy the Angular app to `https://<hosting_site_id>.web.app` (see the
+`hosting_url` output). The Firebase CLI deploy step (`npx firebase-tools deploy`) reuses
+whatever credentials the `google`/`google-beta` providers are using (ADC), so no separate
+`firebase login` is needed as long as that identity has the Firebase Hosting Admin and
+Firebase Rules Admin roles.
+
+`hosting_site_id` (in `terraform.tfvars`) must be globally unique across all Firebase
+projects — it defaults to `<project_id>-frontend`.
 
 ## Notes
 

@@ -1,0 +1,11 @@
+@if (article) {
+  <article class="preview">
+    <h2>{{ article.title }}</h2>
+    <p class="preview-meta">{{ article.source }} · {{ article.pubDate | date: 'medium' }}</p>
+    <a [href]="article.link" target="_blank" rel="noopener">Open original article</a>
+    <p class="preview-description">{{ article.description }}</p>
+    <p class="preview-content">{{ article.content }}</p>
+  </article>
+} @else {
+  <p class="preview-placeholder">Select an article to see its preview.</p>
+}

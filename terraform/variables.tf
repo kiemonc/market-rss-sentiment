@@ -141,3 +141,9 @@ variable "consumer_retry_policy" {
   type        = string
   default     = "RETRY_POLICY_RETRY"
 }
+
+variable "hosting_site_id" {
+  description = "Firebase Hosting site id for the Angular frontend (must be globally unique across all Firebase projects). Defaults to '<project_id>-frontend'."
+  type        = string
+  default     = null
+}

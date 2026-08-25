@@ -34,6 +34,7 @@ data "archive_file" "function_source" {
     ".idea",
     "articles",
     "terraform",
+    "frontend",
     ".env",
     ".env.local",
     "*.log",

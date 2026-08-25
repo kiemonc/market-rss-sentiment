@@ -1,0 +1,12 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // Articles are scraped from public RSS feeds — read access is public.
+    // Only the consumer Cloud Function (Admin SDK, bypasses these rules) writes.
+    match /articles/{articleId} {
+      allow read: if true;
+      allow write: if false;
+    }
+  }
+}

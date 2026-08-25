@@ -1,0 +1,40 @@
+:host {
+  display: block;
+  height: 100vh;
+  font-family: system-ui, sans-serif;
+}
+
+.layout {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+}
+
+.header {
+  padding: 1rem 1.5rem;
+  border-bottom: 1px solid #e5e5e5;
+}
+
+.header h1 {
+  margin: 0;
+  font-size: 1.25rem;
+}
+
+.content {
+  display: flex;
+  flex: 1;
+  min-height: 0;
+}
+
+.pane {
+  min-height: 0;
+}
+
+.list-pane {
+  flex: 0 0 320px;
+  border-right: 1px solid #e5e5e5;
+}
+
+.preview-pane {
+  flex: 1;
+}

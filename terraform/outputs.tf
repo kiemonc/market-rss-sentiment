@@ -37,3 +37,13 @@ output "firestore_database" {
   description = "Firestore database name/id backing article storage."
   value       = google_firestore_database.default.name
 }
+
+output "firebase_web_app_id" {
+  description = "Firebase Web App ID registered for the frontend."
+  value       = google_firebase_web_app.frontend.app_id
+}
+
+output "hosting_url" {
+  description = "URL of the deployed Angular frontend."
+  value       = "https://${local.hosting_site_id}.web.app"
+}

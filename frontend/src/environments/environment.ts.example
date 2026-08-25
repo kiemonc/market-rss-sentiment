@@ -1,0 +1,11 @@
+// Copy to environment.ts and fill in with your Firebase Web App config, or
+// run `terraform apply` in ../../terraform (see terraform/firebase.tf), which
+// generates environment.ts for you from the registered Web App.
+export const environment = {
+  firebase: {
+    apiKey: 'YOUR_API_KEY',
+    authDomain: 'YOUR_PROJECT_ID.firebaseapp.com',
+    projectId: 'YOUR_PROJECT_ID',
+  },
+  articlesCollection: 'articles',
+};
