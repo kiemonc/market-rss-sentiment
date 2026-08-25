@@ -38,18 +38,42 @@ Firestore:
 
 ## Usage
 
+State is stored remotely in GCS (see "Remote state" below), so configure the backend
+before the first `init`:
+
 ```bash
 cd terraform
 cp terraform.tfvars.example terraform.tfvars
+cp backend.hcl.example backend.hcl
 # edit terraform.tfvars: project_id, rss_feeds, schedule, ...
+# edit backend.hcl: bucket = "<project_id>-tfstate"
 
-terraform init
+terraform init -backend-config=backend.hcl
 terraform plan
 terraform apply
 ```
 
 Terraform enables the required APIs itself (`apis.tf`), so a fresh project works too —
 first `apply` may take a few minutes while APIs propagate.
+
+## Remote state
+
+State lives in `gs://<project_id>-tfstate/terraform/state/default.tfstate` (backend
+`gcs`, configured in `versions.tf` + `backend.hcl`). The bucket is created out of band,
+not by this Terraform config — a config must not manage the bucket that stores its own
+state, or `terraform destroy` could delete the state out from under itself:
+
+```bash
+gcloud storage buckets create gs://<project_id>-tfstate \
+  --project=<project_id> --location=us-central1 \
+  --uniform-bucket-level-access --public-access-prevention
+gcloud storage buckets update gs://<project_id>-tfstate --versioning
+```
+
+Versioning is on (so a bad state write can be rolled back), and the `gcs` backend has
+locking built in — no extra setup needed. `backend.hcl` is gitignored, same as
+`terraform.tfvars`, since the bucket name is project-specific — copy it from
+`backend.hcl.example`.
 
 ## Frontend (Firebase)
 
@@ -75,8 +99,6 @@ projects — it defaults to `<project_id>-frontend`.
 - **Manual trigger**: `gcloud scheduler jobs run <job-name> --location=<region>`, or invoke
   the function URL directly with an identity token:
   `curl -X POST -H "Authorization: Bearer $(gcloud auth print-identity-token)" <function_url>/scrape`
-- **State**: this config uses local state by default. For anything beyond solo experimentation,
-  configure a remote backend (e.g. a GCS bucket) in `versions.tf` before running `apply`.
 - **Timeout**: `timeout_seconds` (default 3600s) bounds how long a single `/scrape` run can
   take — `/scrape` now runs to completion before responding, so it must fit inside this window.
 - **Firestore**: a GCP project has exactly one default database, locked to whichever mode

@@ -1,6 +1,14 @@
 terraform {
   required_version = ">= 1.5.0"
 
+  # Bucket/prefix are passed via `-backend-config=backend.hcl` (gitignored,
+  # copy from backend.hcl.example) instead of being hardcoded here, since the
+  # state bucket name is per-project. The bucket itself is created out of
+  # band (gcloud storage buckets create ...), not by this Terraform config —
+  # a config must not manage the bucket that stores its own state, or
+  # `terraform destroy` could delete the state out from under itself.
+  backend "gcs" {}
+
   required_providers {
     google = {
       source  = "hashicorp/google"

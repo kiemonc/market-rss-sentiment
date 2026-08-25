@@ -2,12 +2,18 @@
 
 ## Wdrożenie / redeploy
 
+Stan Terraform jest przechowywany zdalnie w GCS (bucket `<project_id>-tfstate`,
+utworzony poza Terraformem — patrz "Remote state" poniżej), więc przed pierwszym
+`init` w danym środowisku trzeba skonfigurować backend:
+
 ```bash
 cd terraform
 cp terraform.tfvars.example terraform.tfvars   # tylko za pierwszym razem
+cp backend.hcl.example backend.hcl             # tylko za pierwszym razem
 # edytuj terraform.tfvars: project_id, rss_feeds, schedule, ...
+# edytuj backend.hcl: bucket = "<project_id>-tfstate"
 
-terraform init
+terraform init -backend-config=backend.hcl
 terraform plan     # przejrzyj co się zmieni
 terraform apply
 ```
@@ -55,6 +61,29 @@ oraz ścieżka błędu trwałego przy `--message='not valid json'`) był wykonan
 | **Dwa różne poziomy uprawnień w tym samym projekcie** | `terraform apply` działa, ale interaktywny `gcloud` (to samo konto `mikolaj.chmielecki@consdata.com`) dostaje `PERMISSION_DENIED` na `cloudscheduler.jobs.run`, `cloudfunctions.functions.get`, `serviceusage.services.use` | Terraform używa Application Default Credentials — osobnych od tego, co widać w `gcloud auth list`. Faktycznym właścicielem `cloud-playground-mchmielecki` jest konto `chmielecki.mikolaj@gmail.com`. Przełącz: `gcloud config set account chmielecki.mikolaj@gmail.com` |
 | `billing/quota_project` wskazywał na niepowiązany projekt (`cd-devops`) | `gcloud pubsub topics publish` → `PERMISSION_DENIED ... USER_PROJECT_DENIED` dla projektu `cd-devops`, nie tego z `--project` | `gcloud config unset billing/quota_project` (albo `--billing-project=<właściwy-projekt>` per komenda — ale to nie pomoże, jeśli i tak brakuje `serviceusage.services.use` na koncie) |
 
+## Remote state (GCS)
+
+Stan Terraform leży w `gs://<project_id>-tfstate/terraform/state/default.tfstate`
+(backend `gcs`, skonfigurowany w `versions.tf` + `backend.hcl` — patrz wyżej).
+
+- **Bucket tworzony jest ręcznie, nie przez ten sam Terraform**, żeby `terraform
+  destroy` nie mógł usunąć bucketa przechowującego własny stan:
+  ```bash
+  gcloud storage buckets create gs://<project_id>-tfstate \
+    --project=<project_id> --location=us-central1 \
+    --uniform-bucket-level-access --public-access-prevention
+  gcloud storage buckets update gs://<project_id>-tfstate --versioning
+  ```
+- Wersjonowanie bucketa jest włączone — poprzednie wersje `default.tfstate`
+  zostają, gdyby trzeba było się do nich wrócić.
+- Locking jest wbudowany w backend `gcs` (przez generation precondition na
+  obiekcie) — nie trzeba dodatkowej konfiguracji DynamoDB-jak-w-AWS.
+- `backend.hcl` jest w `.gitignore` (nazwa bucketa jest projekt-specyficzna,
+  tak jak `terraform.tfvars`) — skopiuj z `backend.hcl.example`.
+- Migracja z lokalnego stanu do tego backendu (`terraform init
+  -backend-config=backend.hcl -migrate-state`) została wykonana 2026-08-25;
+  lokalne `terraform.tfstate`/`.backup` zostały po tym usunięte.
+
 ## Dlaczego brak dead-letter queue
 
 Świadomie pominięte na tym etapie — patrz [architektura.md § Konsument → Firestore](./architektura.md).
@@ -82,5 +111,4 @@ z odrzuceniem współbieżnego `/scrape` kodem 429). Pliki testowe leżą obok k
 - Sentiment analysis nad artykułami w Firestore (obecnie tylko archiwizacja)
 - Testy integracyjne na emulatorach (Pub/Sub + Firestore) — świadomie pominięte na razie,
   obecne testy jednostkowe wystarczają na tym etapie
-- Remote state backend dla Terraform (obecnie lokalny `terraform.tfstate`)
 - Dedup globalny między zimnymi startami scrapera (patrz Ograniczenia w architektura.md)

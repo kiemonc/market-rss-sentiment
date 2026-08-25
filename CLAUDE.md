@@ -15,7 +15,10 @@ npx vitest run src/consumer.test.ts   # single test file
 npx vitest run -t "writes a valid article"   # single test by name
 ```
 
-Terraform (in `terraform/`): `terraform init`, `terraform plan`, `terraform apply`.
+Terraform (in `terraform/`): state is remote (GCS backend, see
+`terraform/README.md` § Remote state), so first run
+`terraform init -backend-config=backend.hcl` (copy `backend.hcl` from
+`backend.hcl.example`); after that, `terraform plan`, `terraform apply`.
 See `docs/operacje.md` for the full deploy/verify workflow and a table of every
 real gotcha already hit (GCS bucket name / service-account `account_id` length
 limits, Cloud Scheduler's `attempt_deadline` cap, etc.) — check it before
