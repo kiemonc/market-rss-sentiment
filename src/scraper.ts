@@ -29,13 +29,16 @@ async function fetchRssFeed(feedUrl: string, sourceName: string): Promise<Articl
 
         if (!seenArticleIds.has(articleId)) {
           seenArticleIds.add(articleId);
+          const pubDate = item.pubDate || item.date || new Date().toISOString();
+          const parsedPubDate = new Date(pubDate);
           articles.push({
             id: articleId,
             title,
             link,
             description: item.description || item.summary || '',
             source: sourceName,
-            pubDate: item.pubDate || item.date || new Date().toISOString(),
+            pubDate,
+            publishedAt: (isNaN(parsedPubDate.getTime()) ? new Date() : parsedPubDate).toISOString(),
           });
         }
       }

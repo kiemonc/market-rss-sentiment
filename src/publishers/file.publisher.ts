@@ -29,6 +29,7 @@ export class FilePublisher implements Publisher {
       content: article.content,
       source: article.source,
       pubDate: article.pubDate,
+      publishedAt: article.publishedAt,
       contentFetchedAt: article.contentFetchedAt,
       fetchedAt: new Date().toISOString(),
     };

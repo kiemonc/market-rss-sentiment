@@ -8,6 +8,8 @@ export interface Article {
   content: string;
   source: string;
   pubDate: string;
+  /** `pubDate` normalized to ISO 8601. Absent on articles scraped before this field existed. */
+  publishedAt?: string;
   contentFetchedAt?: string;
   fetchedAt: string;
 }

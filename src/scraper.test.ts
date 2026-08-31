@@ -61,6 +61,20 @@ describe('scrapeAllFeeds', () => {
     expect(articles[1]).toMatchObject({ title: 'Article Two', link: 'https://example.com/two' });
   });
 
+  it('normalizes pubDate into an ISO publishedAt, falling back to now for unparseable dates', async () => {
+    const xml = rssXml([
+      { title: 'Parseable', link: 'https://example.com/a', description: 'd', pubDate: 'Mon, 01 Jan 2024 12:00:00 GMT' },
+      { title: 'Unparseable', link: 'https://example.com/b', description: 'd', pubDate: 'not a date' },
+    ]);
+    mockFetch.mockResolvedValueOnce(okResponse(xml));
+
+    const { scrapeAllFeeds } = await import('./scraper');
+    const articles = await scrapeAllFeeds([{ name: 'testfeed', url: 'https://example.com/rss' }]);
+
+    expect(articles[0].publishedAt).toBe('2024-01-01T12:00:00.000Z');
+    expect(new Date(articles[1].publishedAt).getTime()).not.toBeNaN();
+  });
+
   it('does not return the same article twice across calls (dedup by title+link)', async () => {
     const xml = rssXml([
       { title: 'Repeat', link: 'https://example.com/repeat', description: 'd', pubDate: 'Mon, 01 Jan 2024 00:00:00 GMT' },
