@@ -41,7 +41,7 @@ zipa → nowy `google_storage_bucket_object` → redeploy obu funkcji przy kolej
 | `region` | `us-central1` | obu funkcji, topicu, schedulera |
 | `function_name` | `market-rss-sentiment` | scraper |
 | `pubsub_topic` | `market-articles` | topic |
-| `rss_feeds` | bloomberg, cnbc, coindesk | scraper (`RSS_FEEDS` env) |
+| `rss_feeds` | cointelegraph, decrypt, bitcoinmagazine, cryptoslate, newsbtc | scraper (`RSS_FEEDS` env) |
 | `available_memory` / `available_cpu` | `512Mi` / `1` | scraper |
 | `timeout_seconds` | `3600` | scraper (`/scrape` musi się zmieścić) |
 | `min_instance_count` / `max_instance_count` | `0` / `1` | scraper |

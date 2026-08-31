@@ -48,7 +48,11 @@ async function fetchRssFeed(feedUrl: string, sourceName: string): Promise<Articl
       resolve(articles);
     });
 
-    fetch(feedUrl)
+    fetch(feedUrl, {
+      headers: {
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
+      },
+    })
       .then((res: Response) => {
         if (!res.ok) {
           throw new Error(`HTTP ${res.status}: ${res.statusText}`);

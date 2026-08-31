@@ -29,7 +29,8 @@ kontynuacji pracy w tle po wysłaniu odpowiedzi, więc cały scrape musi się zm
 |---|---|
 | `src/index.ts` | Express app = funkcja HTTP `app` (`/health`, `/scrape`, `/scrape-status`); rejestruje się w functions-framework przez `http('app', app)`; importuje `./consumer` dla efektu ubocznego (patrz niżej) |
 | `src/scraper.ts` | Pobiera RSS-y (`feedparser`), dedup po `MD5(title:link)` w `Set` trzymanym w pamięci procesu (dedup **per-instancja**, nie globalny — patrz Ograniczenia) |
-| `src/content-resolver.ts` | Dla każdego artykułu pobiera pełną treść HTML i wyciąga tekst (`cheerio`, kilka selektorów kandydatów), z prostym cache'em w pamięci i rate-limitem 500ms między requestami |
+| `src/content-resolver.ts` | Dla każdego artykułu pobiera pełną treść HTML i wyciąga tekst — najpierw przez dedykowany parser danego źródła (`site-parsers.ts`), z fallbackiem do kilku generycznych selektorów-kandydatów gdy źródło go nie ma lub selektor przestał pasować — z prostym cache'em w pamięci i rate-limitem 500ms między requestami |
+| `src/site-parsers.ts` | Selektory CSS dla ciała artykułu per-źródło RSS (`cointelegraph`, `decrypt`, `bitcoinmagazine`, `cryptoslate`, `newsbtc`), wyznaczone ręcznie z realnych stron; generyczne wielo-selektorowe zgadywanie w `content-resolver.ts` często łapało nav/related-articles/newsletter, stąd dedykowane parsery per motyw/framework strony |
 | `src/pubsub.ts` | Definicje typów: `Article` → `ArticleWithContent` → `ArticlePayload` (dokładny kształt wiadomości publikowanej do Pub/Sub) |
 | `src/publishers/` | Abstrakcja `Publisher` (`initialize`, `publish`, `close?`) z dwiema implementacjami: `GoogleCloudPublisher` (Pub/Sub, produkcja) i `FilePublisher` (JSONL per-feed, lokalny dev) — wybór przez `PUBLISHER_TYPE` |
 | `src/consumer.ts` | Funkcja `consumeArticle` (Eventarc/Pub/Sub trigger) — dekoduje wiadomość, zapisuje do Firestore |

@@ -1,6 +1,7 @@
 import fetch from 'node-fetch';
 import * as cheerio from 'cheerio';
 import type { Article, ArticleWithContent } from './pubsub';
+import { extractWithSiteParser } from './site-parsers';
 
 // Simple in-memory cache to avoid fetching same content twice
 const contentCache = new Map<string, string>();
@@ -13,7 +14,7 @@ async function delay(ms: number): Promise<void> {
   return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
-async function fetchAndParseContent(link: string): Promise<string | null> {
+async function fetchAndParseContent(link: string, source?: string): Promise<string | null> {
   if (!link) return null;
 
   // Check cache first
@@ -45,33 +46,42 @@ async function fetchAndParseContent(link: string): Promise<string | null> {
     const html = await response.text();
     const $ = cheerio.load(html);
 
-    // Try common article content selectors
-    let content = '';
-
     // Remove unwanted elements
     $('script, style, nav, footer, .ad, .advertisement, .sidebar').remove();
 
-    // Try multiple selectors for article content
-    const selectors = [
-      'article',
-      '[role="main"]',
-      '.article-content',
-      '.post-content',
-      '.entry-content',
-      '.content',
-      'main',
-    ];
+    // Prefer the source's dedicated parser (see site-parsers.ts) - it targets
+    // the actual article-body element for that site's theme/framework, unlike
+    // the generic selectors below which often also pick up nav/related-article/
+    // newsletter boilerplate. Trust it whenever it matches, even for a short
+    // article - unlike the generic selectors it isn't a heuristic guess, so it
+    // doesn't need the ">100 chars" sanity threshold they rely on below.
+    const siteParserContent = source ? extractWithSiteParser($, source) : null;
+    let content = siteParserContent ?? '';
 
-    for (const selector of selectors) {
-      const element = $(selector).first();
-      if (element.length > 0) {
-        content = element.text().trim();
-        if (content.length > 100) break;
+    // Fall back to generic selectors for sources without a dedicated parser,
+    // or if the dedicated one didn't match (site markup changed).
+    if (siteParserContent === null && content.length < 100) {
+      const selectors = [
+        'article',
+        '[role="main"]',
+        '.article-content',
+        '.post-content',
+        '.entry-content',
+        '.content',
+        'main',
+      ];
+
+      for (const selector of selectors) {
+        const element = $(selector).first();
+        if (element.length > 0) {
+          content = element.text().trim();
+          if (content.length > 100) break;
+        }
       }
     }
 
     // If no article content found, get all text
-    if (content.length < 100) {
+    if (siteParserContent === null && content.length < 100) {
       content = $('body').text().trim();
     }
 
@@ -98,7 +108,7 @@ async function fetchAndParseContent(link: string): Promise<string | null> {
 }
 
 async function resolveArticleContent(article: Article): Promise<ArticleWithContent> {
-  const content = await fetchAndParseContent(article.link);
+  const content = await fetchAndParseContent(article.link, article.source);
 
   return {
     ...article,

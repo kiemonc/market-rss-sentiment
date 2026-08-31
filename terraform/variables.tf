@@ -28,9 +28,11 @@ variable "rss_feeds" {
     url  = string
   }))
   default = [
-    { name = "bloomberg", url = "https://feeds.bloomberg.com/markets/news.rss" },
-    { name = "cnbc", url = "https://www.cnbc.com/id/100003114/device/rss/rss.html" },
-    { name = "coindesk", url = "https://www.coindesk.com/feed/" },
+    { name = "cointelegraph", url = "https://cointelegraph.com/rss" },
+    { name = "decrypt", url = "https://decrypt.co/feed" },
+    { name = "bitcoinmagazine", url = "https://bitcoinmagazine.com/feed" },
+    { name = "cryptoslate", url = "https://cryptoslate.com/feed/" },
+    { name = "newsbtc", url = "https://www.newsbtc.com/feed/" },
   ]
 }
 

@@ -81,6 +81,31 @@ describe('fetchAndParseContent', () => {
   });
 });
 
+describe('fetchAndParseContent with a source-specific parser', () => {
+  it('prefers the dedicated site parser over the generic <article>/main selectors', async () => {
+    const html = `<html><body>
+      <article>Generic fallback text that is definitely long enough to pass the 100-char threshold on its own, padding padding.</article>
+      <div class="ct-prose"><p>Dedicated cointelegraph extraction result.</p></div>
+    </body></html>`;
+    mockFetch.mockResolvedValueOnce(htmlResponse(html));
+
+    const { fetchAndParseContent } = await import('./content-resolver');
+    const content = await fetchAndParseContent('https://cointelegraph.com/news/x', 'cointelegraph');
+
+    expect(content).toBe('Dedicated cointelegraph extraction result.');
+  });
+
+  it('falls back to generic selectors when the source has no dedicated parser', async () => {
+    const longText = 'w'.repeat(150);
+    mockFetch.mockResolvedValueOnce(htmlResponse(`<article>${longText}</article>`));
+
+    const { fetchAndParseContent } = await import('./content-resolver');
+    const content = await fetchAndParseContent('https://example.com/a', 'bloomberg');
+
+    expect(content).toBe(longText);
+  });
+});
+
 describe('resolveArticleContent', () => {
   it('merges the fetched content and a contentFetchedAt timestamp onto the article', async () => {
     const longText = 'z'.repeat(150);
