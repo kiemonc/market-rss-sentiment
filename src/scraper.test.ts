@@ -61,6 +61,24 @@ describe('scrapeAllFeeds', () => {
     expect(articles[1]).toMatchObject({ title: 'Article Two', link: 'https://example.com/two' });
   });
 
+  it('strips HTML markup out of the description, since RSS feeds often embed a <p>/<img> teaser there', async () => {
+    const xml = rssXml([
+      {
+        title: 'Article One',
+        link: 'https://example.com/one',
+        description:
+          '&lt;p style="float:right"&gt;&lt;img src="https://example.com/cover.jpg"&gt;&lt;/p&gt;&lt;p&gt;Actual teaser text.&lt;/p&gt;',
+        pubDate: 'Mon, 01 Jan 2024 00:00:00 GMT',
+      },
+    ]);
+    mockFetch.mockResolvedValueOnce(okResponse(xml));
+
+    const { scrapeAllFeeds } = await import('./scraper');
+    const articles = await scrapeAllFeeds([{ name: 'testfeed', url: 'https://example.com/rss' }]);
+
+    expect(articles[0].description).toBe('Actual teaser text.');
+  });
+
   it('normalizes pubDate into an ISO publishedAt, falling back to now for unparseable dates', async () => {
     const xml = rssXml([
       { title: 'Parseable', link: 'https://example.com/a', description: 'd', pubDate: 'Mon, 01 Jan 2024 12:00:00 GMT' },

@@ -1,6 +1,7 @@
 import FeedParser from 'feedparser';
 import fetch, { Response } from 'node-fetch';
 import crypto from 'crypto';
+import * as cheerio from 'cheerio';
 import { Article } from './pubsub';
 
 const seenArticleIds = new Set<string>();
@@ -8,6 +9,15 @@ const seenArticleIds = new Set<string>();
 function generateArticleId(title: string, link: string): string {
   const content = `${title}:${link}`;
   return crypto.createHash('md5').update(content).digest('hex');
+}
+
+// RSS <description>/<summary> is frequently HTML (most of our sources embed a
+// <p>/<img> teaser), but this field is meant to be a short plain-text excerpt
+// - the frontend renders it via text interpolation, so raw markup would show
+// up as literal tags instead of being rendered.
+function stripHtml(html: string): string {
+  if (!html) return '';
+  return cheerio.load(html).text().replace(/\s+/g, ' ').trim();
 }
 
 async function fetchRssFeed(feedUrl: string, sourceName: string): Promise<Article[]> {
@@ -35,7 +45,7 @@ async function fetchRssFeed(feedUrl: string, sourceName: string): Promise<Articl
             id: articleId,
             title,
             link,
-            description: item.description || item.summary || '',
+            description: stripHtml(item.description || item.summary || ''),
             source: sourceName,
             pubDate,
             publishedAt: (isNaN(parsedPubDate.getTime()) ? new Date() : parsedPubDate).toISOString(),
