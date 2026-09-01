@@ -1,6 +1,10 @@
 <div class="layout">
   <header class="header">
     <h1><a routerLink="/">Market articles</a></h1>
+    <nav class="nav">
+      <a routerLink="/" routerLinkActive="active" [routerLinkActiveOptions]="{ exact: true }">Articles</a>
+      <a routerLink="/stats" routerLinkActive="active">Stats</a>
+    </nav>
   </header>
   <main class="content">
     <router-outlet />

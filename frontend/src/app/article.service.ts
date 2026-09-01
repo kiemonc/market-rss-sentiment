@@ -38,6 +38,14 @@ export const EMPTY_FILTERS: ArticleFilters = { source: null, publishedFrom: null
 /** Cap on how many documents a title search reads, since it can't be server-paginated (see getArticlesForTitleSearch). */
 export const TITLE_SEARCH_LIMIT = 1000;
 
+export interface StatsFilters {
+  /** Source names to include, or null to include every source (see getArticlesForStats). */
+  sources: string[] | null;
+  /** Inclusive bounds (ISO strings) on whichever date field the stats query is bucketing by. */
+  from: string | null;
+  to: string | null;
+}
+
 @Injectable({ providedIn: 'root' })
 export class ArticleService {
   private readonly firestore = getFirestore(initializeApp(environment.firebase));
@@ -124,6 +132,23 @@ export class ArticleService {
       sources.push(last);
     }
     return sources;
+  }
+
+  /**
+   * Articles matching `filters`, ordered by `dateField`, for the stats page's daily bucketing.
+   * `sources` is passed as a Firestore `in` filter and omitted entirely when it covers every known
+   * source, since a `source` filter combined with `orderBy(dateField)` needs a composite index
+   * (see terraform/firestore.tf) while an unfiltered range+orderBy on one field doesn't.
+   */
+  async getArticlesForStats(dateField: 'publishedAt' | 'fetchedAt', filters: StatsFilters): Promise<Article[]> {
+    const clauses = [];
+    if (filters.sources) clauses.push(where('source', 'in', filters.sources));
+    if (filters.from) clauses.push(where(dateField, '>=', filters.from));
+    if (filters.to) clauses.push(where(dateField, '<=', filters.to));
+
+    const statsQuery = query(this.articlesCollection, ...clauses, orderBy(dateField));
+    const snapshot = await getDocs(statsQuery);
+    return snapshot.docs.map((doc) => doc.data() as Article);
   }
 
   /** Live view of a single article by id, or null if it doesn't exist. */
