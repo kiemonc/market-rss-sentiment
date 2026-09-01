@@ -60,7 +60,7 @@ nie przez spread — to jest **jedyne** miejsce definiujące realny format wiado
   title: string,
   link: string,
   description: string,
-  content: string,         // pełna treść wyciągnięta z HTML (do 5000 znaków)
+  content: string,         // pełna treść wyciągnięta z HTML (do 50000 znaków)
   source: string,           // nazwa feedu, np. "bloomberg"
   pubDate: string,
   contentFetchedAt?: string,

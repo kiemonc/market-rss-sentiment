@@ -88,7 +88,7 @@ async function fetchAndParseContent(link: string, source?: string): Promise<stri
     // Clean up whitespace
     content = content
       .replace(/\s+/g, ' ')
-      .substring(0, 5000) // Limit to 5000 chars
+      .substring(0, 50000) // Limit to 50000 chars
       .trim();
 
     if (content.length === 0) {
