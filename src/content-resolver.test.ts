@@ -127,6 +127,30 @@ describe('resolveArticleContent', () => {
 
     expect(resolved.content).toBe('');
   });
+
+  it('excerpts the description when the feed dumped the whole article body into it', async () => {
+    const fullArticleText = 'Full body paragraph repeated to simulate a feed that duplicates content. '.repeat(10).trim();
+    mockFetch.mockResolvedValueOnce(htmlResponse(`<article>${fullArticleText}</article>`));
+
+    const { resolveArticleContent } = await import('./content-resolver');
+    const resolved = await resolveArticleContent(baseArticle({ description: fullArticleText }));
+
+    expect(resolved.description.length).toBeLessThan(fullArticleText.length);
+    expect(resolved.description.endsWith('…')).toBe(true);
+    expect(fullArticleText.startsWith(resolved.description.slice(0, -1))).toBe(true);
+    expect(resolved.content).toBe(fullArticleText);
+  });
+
+  it('leaves a short, genuine teaser description untouched even when it overlaps the article lede', async () => {
+    const teaser = 'A short teaser lifted from the opening line of the article.';
+    const fullArticleText = `${teaser} And then several more paragraphs of body text follow after that, padding this out well past the excerpt threshold used for duplicate detection so it reads like a real article body.`;
+    mockFetch.mockResolvedValueOnce(htmlResponse(`<article>${fullArticleText}</article>`));
+
+    const { resolveArticleContent } = await import('./content-resolver');
+    const resolved = await resolveArticleContent(baseArticle({ description: teaser }));
+
+    expect(resolved.description).toBe(teaser);
+  });
 });
 
 describe('resolveMultipleArticles', () => {

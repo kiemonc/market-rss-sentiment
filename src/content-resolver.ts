@@ -107,11 +107,38 @@ async function fetchAndParseContent(link: string, source?: string): Promise<stri
   }
 }
 
+const DESCRIPTION_EXCERPT_LENGTH = 200;
+
+// Some sources put the entire article body in <description> instead of a short
+// teaser, so once we have the actual fetched content we can check for real
+// rather than guessing from length alone: a genuine teaser is short, but if
+// the description is long AND a chunk of it shows up verbatim in the fetched
+// content, the feed dumped the article there. Matching mid-description (not
+// just a prefix) tolerates content-extraction picking up a byline/dateline
+// before the body text starts.
+function looksLikeDuplicateOfContent(description: string, content: string): boolean {
+  if (description.length < 400 || !content) return false;
+  const normalizedDescription = description.toLowerCase();
+  const probe = normalizedDescription.slice(0, 200);
+  return content.toLowerCase().includes(probe);
+}
+
+function excerpt(text: string): string {
+  if (text.length <= DESCRIPTION_EXCERPT_LENGTH) return text;
+  return text.slice(0, DESCRIPTION_EXCERPT_LENGTH).trimEnd() + '…';
+}
+
 async function resolveArticleContent(article: Article): Promise<ArticleWithContent> {
   const content = await fetchAndParseContent(article.link, article.source);
 
+  const description =
+    content && looksLikeDuplicateOfContent(article.description, content)
+      ? excerpt(article.description)
+      : article.description;
+
   return {
     ...article,
+    description,
     content: content || '',
     contentFetchedAt: new Date().toISOString(),
   };
