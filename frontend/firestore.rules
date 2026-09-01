@@ -8,5 +8,12 @@ service cloud.firestore {
       allow read: if true;
       allow write: if false;
     }
+
+    // Per-article LLM sentiment analysis — same public-read/no-write shape as articles.
+    // Only the sentiment consumer Cloud Function (Admin SDK, bypasses these rules) writes.
+    match /sentiment/{articleId} {
+      allow read: if true;
+      allow write: if false;
+    }
   }
 }

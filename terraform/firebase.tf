@@ -47,6 +47,7 @@ resource "local_file" "frontend_environment" {
         projectId: '${var.project_id}',
       },
       articlesCollection: '${var.firestore_collection}',
+      sentimentCollection: '${var.sentiment_collection}',
     };
   EOT
 }

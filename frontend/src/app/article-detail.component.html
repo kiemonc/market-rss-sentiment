@@ -1,4 +1,7 @@
 <div class="detail-page">
   <a routerLink="/" class="back-link">&larr; Back to articles</a>
   <app-article-preview [article]="article()" />
+  @if (article()) {
+    <app-article-sentiment [sentiment]="sentiment()" />
+  }
 </div>

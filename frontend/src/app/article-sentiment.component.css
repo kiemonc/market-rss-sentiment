@@ -1,0 +1,227 @@
+:host {
+  display: block;
+}
+
+.sentiment-panel {
+  padding: 1.25rem 1.5rem 1.5rem;
+  border-top: 1px solid #e5e5e5;
+}
+
+.sentiment-panel h3 {
+  margin: 0 0 0.25rem;
+  font-size: 1rem;
+}
+
+.sentiment-note {
+  color: #666;
+  font-size: 0.9rem;
+  margin: 0 0 0.75rem;
+}
+
+.sentiment-pending .sentiment-note {
+  font-style: italic;
+}
+
+.coin-cards {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.coin-card {
+  border: 1px solid #e5e5e5;
+  border-radius: 8px;
+  padding: 0.75rem 1rem;
+  background: #fafafa;
+}
+
+.coin-card-header {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 1rem;
+  flex-wrap: wrap;
+}
+
+.coin-ticker {
+  font-weight: 700;
+  font-size: 1.05rem;
+  letter-spacing: 0.02em;
+}
+
+/* Relevance (weight): sequential single-hue meter — filled step over a lighter step of the
+   same ramp, per the dataviz skill's meter contract. Not the bullish/bearish red-green pair,
+   so it can't be mistaken for a sentiment signal. */
+.weight-meter {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.8rem;
+  color: #52514e;
+}
+
+.weight-label {
+  white-space: nowrap;
+}
+
+.meter-track {
+  width: 72px;
+  height: 6px;
+  border-radius: 3px;
+  background: #cde2fb;
+  overflow: hidden;
+}
+
+.meter-fill {
+  display: block;
+  height: 100%;
+  background: #2a78d6;
+  border-radius: 3px;
+}
+
+/* Sentiment impact: a diverging meter anchored at a center zero-line. Color (green/red) is
+   never the only cue — direction word, arrow glyph, bar position relative to center, and the
+   signed numeric value all carry the same information redundantly. */
+.diff-row {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  margin-top: 0.6rem;
+  font-size: 0.85rem;
+}
+
+.diff-direction {
+  flex: 0 0 auto;
+  width: 5.5rem;
+  font-weight: 600;
+}
+
+.diff-bullish .diff-direction {
+  color: #0ca30c;
+}
+
+.diff-bearish .diff-direction {
+  color: #d03b3b;
+}
+
+.diff-neutral .diff-direction {
+  color: #898781;
+}
+
+.diff-track {
+  position: relative;
+  flex: 1 1 auto;
+  height: 6px;
+  border-radius: 3px;
+  background: #e1e0d9;
+}
+
+.diff-midline {
+  position: absolute;
+  top: -2px;
+  bottom: -2px;
+  left: 50%;
+  width: 1px;
+  background: #c3c2b7;
+}
+
+.diff-fill {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  border-radius: 3px;
+}
+
+.diff-bullish .diff-fill {
+  background: #0ca30c;
+}
+
+.diff-bearish .diff-fill {
+  background: #d03b3b;
+}
+
+.diff-neutral .diff-fill {
+  background: #898781;
+}
+
+.diff-value {
+  flex: 0 0 auto;
+  width: 3.2rem;
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+  color: #52514e;
+}
+
+/* Sentiment breakdown (vector): a 3-part composition, always in the same bullish/bearish/neutral
+   order, with a 2px surface gap between segments and a legend carrying the values as text (never
+   color alone). */
+.vector-row {
+  margin-top: 0.6rem;
+}
+
+.vector-label {
+  display: block;
+  font-size: 0.8rem;
+  color: #52514e;
+  margin-bottom: 0.25rem;
+}
+
+.vector-bar {
+  display: flex;
+  gap: 2px;
+  height: 8px;
+  border-radius: 4px;
+  overflow: hidden;
+  background: #fafafa;
+}
+
+.vector-segment {
+  display: block;
+  height: 100%;
+}
+
+.vector-bullish {
+  background: #0ca30c;
+}
+
+.vector-bearish {
+  background: #d03b3b;
+}
+
+.vector-neutral {
+  background: #898781;
+}
+
+.vector-legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.25rem 0.9rem;
+  margin-top: 0.35rem;
+  font-size: 0.78rem;
+  color: #52514e;
+}
+
+.legend-item {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+}
+
+.legend-swatch {
+  width: 8px;
+  height: 8px;
+  border-radius: 2px;
+  font-style: normal;
+}
+
+.swatch-bullish {
+  background: #0ca30c;
+}
+
+.swatch-bearish {
+  background: #d03b3b;
+}
+
+.swatch-neutral {
+  background: #898781;
+}

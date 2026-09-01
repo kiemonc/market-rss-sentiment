@@ -18,7 +18,7 @@ import {
 } from 'firebase/firestore';
 import { Observable } from 'rxjs';
 import { environment } from '../environments/environment';
-import { Article } from './article.model';
+import { Article, SentimentAnalysis } from './article.model';
 
 export interface ArticlesPage {
   articles: Article[];
@@ -158,6 +158,29 @@ export class ArticleService {
         doc(this.firestore, environment.articlesCollection, id),
         (snapshot) => subscriber.next(snapshot.exists() ? (snapshot.data() as Article) : null),
         (error) => subscriber.error(error)
+      );
+    });
+  }
+
+  /**
+   * Live view of an article's sentiment analysis, or null if it doesn't exist (the sentiment
+   * consumer runs asynchronously after the article itself is written, so this can briefly lag
+   * behind — or never appear, e.g. for an article predating that consumer).
+   *
+   * Unlike watchArticle, errors are swallowed (logged, then emitted as null) rather than
+   * propagated: this is supplementary, best-effort data, and toSignal() rethrows on read when its
+   * source errors, which would otherwise take down the whole article view over something as
+   * minor as a transient permission/network blip on the sentiment collection alone.
+   */
+  watchSentiment(articleId: string): Observable<SentimentAnalysis | null> {
+    return new Observable<SentimentAnalysis | null>((subscriber) => {
+      return onSnapshot(
+        doc(this.firestore, environment.sentimentCollection, articleId),
+        (snapshot) => subscriber.next(snapshot.exists() ? (snapshot.data() as SentimentAnalysis) : null),
+        (error) => {
+          console.warn('Failed to load sentiment analysis:', error);
+          subscriber.next(null);
+        }
       );
     });
   }

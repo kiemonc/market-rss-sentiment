@@ -1,0 +1,82 @@
+@if (sentiment === null) {
+  <section class="sentiment-panel sentiment-pending">
+    <h3>LLM sentiment analysis</h3>
+    <p class="sentiment-note">Analysis pending — this runs shortly after the article is scraped.</p>
+  </section>
+} @else if (coinEntries.length === 0) {
+  <section class="sentiment-panel">
+    <h3>LLM sentiment analysis</h3>
+    <p class="sentiment-note">No cryptocurrencies were identified in this article.</p>
+  </section>
+} @else {
+  <section class="sentiment-panel">
+    <h3>LLM sentiment analysis</h3>
+    <p class="sentiment-note">Analyzed {{ sentiment!.analyzedAt | date: 'medium' }}</p>
+
+    <div class="coin-cards">
+      @for (entry of coinEntries; track entry[0]) {
+        <article class="coin-card">
+          <header class="coin-card-header">
+            <span class="coin-ticker">{{ entry[0] }}</span>
+            <span
+              class="weight-meter"
+              [title]="'Relevance to this article: ' + toPercent(entry[1].weight) + '%'"
+            >
+              <span class="weight-label">Relevance {{ toPercent(entry[1].weight) }}%</span>
+              <span class="meter-track">
+                <span class="meter-fill" [style.width.%]="toPercent(entry[1].weight)"></span>
+              </span>
+            </span>
+          </header>
+
+          <div
+            class="diff-row diff-{{ sentimentDirection(entry[1].sentimentDiff) }}"
+            [title]="'Sentiment impact: ' + (entry[1].sentimentDiff >= 0 ? '+' : '') + (entry[1].sentimentDiff | number: '1.2-2')"
+          >
+            <span class="diff-direction">
+              @switch (sentimentDirection(entry[1].sentimentDiff)) {
+                @case ('bullish') {
+                  &#9650; Bullish
+                }
+                @case ('bearish') {
+                  &#9660; Bearish
+                }
+                @default {
+                  &#9679; Neutral
+                }
+              }
+            </span>
+            <span class="diff-track">
+              <span class="diff-midline"></span>
+              <span
+                class="diff-fill"
+                [style.left.%]="diffBarFill(entry[1].sentimentDiff).left"
+                [style.width.%]="diffBarFill(entry[1].sentimentDiff).width"
+              ></span>
+            </span>
+            <span class="diff-value">{{ entry[1].sentimentDiff >= 0 ? '+' : '' }}{{ entry[1].sentimentDiff | number: '1.2-2' }}</span>
+          </div>
+
+          <div class="vector-row">
+            <span class="vector-label">Sentiment breakdown</span>
+            <span
+              class="vector-bar"
+              [title]="
+                'Bullish ' + toPercent(entry[1].vector[0]) + '% · Bearish ' + toPercent(entry[1].vector[1]) + '% · Neutral ' + toPercent(entry[1].vector[2]) + '%'
+              "
+            >
+              <span class="vector-segment vector-bullish" [style.width.%]="toPercent(entry[1].vector[0])"></span>
+              <span class="vector-segment vector-bearish" [style.width.%]="toPercent(entry[1].vector[1])"></span>
+              <span class="vector-segment vector-neutral" [style.width.%]="toPercent(entry[1].vector[2])"></span>
+            </span>
+            <span class="vector-legend">
+              <span class="legend-item"><i class="legend-swatch swatch-bullish"></i>Bullish {{ toPercent(entry[1].vector[0]) }}%</span>
+              <span class="legend-item"><i class="legend-swatch swatch-bearish"></i>Bearish {{ toPercent(entry[1].vector[1]) }}%</span>
+              <span class="legend-item"><i class="legend-swatch swatch-neutral"></i>Neutral {{ toPercent(entry[1].vector[2]) }}%</span>
+            </span>
+          </div>
+        </article>
+      }
+    </div>
+  </section>
+}

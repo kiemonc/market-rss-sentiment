@@ -13,3 +13,22 @@ export interface Article {
   contentFetchedAt?: string;
   fetchedAt: string;
 }
+
+// Mirrors the per-article sentiment doc written by the sentiment consumer function to
+// `sentiment/{articleId}` (see ../../../src/sentiment.ts and ../../../src/sentiment-consumer.ts).
+export interface CoinSentiment {
+  /** [bullish, bearish, neutral] confidence scores from the LLM, each in [0,1], roughly summing to 1. */
+  vector: [number, number, number];
+  /** How prominently/relevantly this coin features in the article, in [0,1]. */
+  weight: number;
+  /** Signed impact on investor sentiment for this coin: positive = bullish, negative = bearish, in [-1,1]. */
+  sentimentDiff: number;
+}
+
+export interface SentimentAnalysis {
+  articleId: string;
+  source: string;
+  analyzedAt: string;
+  /** Coin ticker (e.g. "BTC") -> its sentiment analysis for this article. */
+  coins: Record<string, CoinSentiment>;
+}
