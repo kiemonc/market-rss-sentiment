@@ -18,6 +18,11 @@ interface Config {
   };
   rssFeeds: RSSFeed[];
   pubsubEmulatorHost: string | null;
+  vertexAi: {
+    location: string;
+    model: string;
+  };
+  sentimentCollection: string;
 }
 
 const publisherType = (process.env.PUBLISHER_TYPE || (process.env.NODE_ENV === 'production' ? 'gcp' : 'file')) as 'gcp' | 'file';
@@ -49,6 +54,13 @@ const config: Config = {
   })(),
 
   pubsubEmulatorHost: process.env.PUBSUB_EMULATOR_HOST || null,
+
+  vertexAi: {
+    location: process.env.VERTEX_AI_LOCATION || 'us-central1',
+    model: process.env.VERTEX_AI_MODEL || 'gemini-2.5-flash',
+  },
+
+  sentimentCollection: process.env.SENTIMENT_COLLECTION || 'sentiment',
 };
 
 export default config;

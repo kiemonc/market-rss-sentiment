@@ -144,6 +144,66 @@ variable "consumer_retry_policy" {
   default     = "RETRY_POLICY_RETRY"
 }
 
+variable "sentiment_consumer_function_name" {
+  description = "Name of the Pub/Sub-triggered LLM sentiment-analysis Cloud Function."
+  type        = string
+  default     = "market-rss-sentiment-sentiment-consumer"
+}
+
+variable "sentiment_consumer_available_memory" {
+  description = "Memory allocated to the sentiment-analysis consumer function."
+  type        = string
+  default     = "512Mi"
+}
+
+variable "sentiment_consumer_available_cpu" {
+  description = "vCPUs allocated to the sentiment-analysis consumer function."
+  type        = string
+  default     = "1"
+}
+
+variable "sentiment_consumer_timeout_seconds" {
+  description = "Per-invocation timeout for the sentiment-analysis consumer function (the Vertex AI call dominates)."
+  type        = number
+  default     = 120
+}
+
+variable "sentiment_consumer_min_instance_count" {
+  description = "Minimum warm instances for the sentiment-analysis consumer function."
+  type        = number
+  default     = 0
+}
+
+variable "sentiment_consumer_max_instance_count" {
+  description = "Maximum concurrent instances for the sentiment-analysis consumer function."
+  type        = number
+  default     = 5
+}
+
+variable "sentiment_consumer_retry_policy" {
+  description = "RETRY_POLICY_RETRY or RETRY_POLICY_DO_NOT_RETRY for the sentiment-analysis consumer's Pub/Sub event trigger."
+  type        = string
+  default     = "RETRY_POLICY_RETRY"
+}
+
+variable "vertex_ai_location" {
+  description = "Vertex AI region for the sentiment-analysis LLM calls."
+  type        = string
+  default     = "us-central1"
+}
+
+variable "vertex_ai_model" {
+  description = "Vertex AI generative model used for per-article sentiment analysis."
+  type        = string
+  default     = "gemini-2.5-flash"
+}
+
+variable "sentiment_collection" {
+  description = "Firestore collection per-article coin-sentiment results are written to."
+  type        = string
+  default     = "sentiment"
+}
+
 variable "hosting_site_id" {
   description = "Firebase Hosting site id for the Angular frontend (must be globally unique across all Firebase projects). Defaults to '<project_id>-frontend'."
   type        = string

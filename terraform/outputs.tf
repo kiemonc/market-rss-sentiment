@@ -33,6 +33,16 @@ output "consumer_service_account" {
   value       = google_service_account.consumer_runtime.email
 }
 
+output "sentiment_consumer_function_name" {
+  description = "Name of the LLM sentiment-analysis Cloud Function."
+  value       = google_cloudfunctions2_function.sentiment_consumer.name
+}
+
+output "sentiment_consumer_service_account" {
+  description = "Runtime service account email used by the sentiment-analysis consumer function."
+  value       = google_service_account.sentiment_consumer_runtime.email
+}
+
 output "firestore_database" {
   description = "Firestore database name/id backing article storage."
   value       = google_firestore_database.default.name

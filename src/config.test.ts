@@ -14,6 +14,9 @@ const ENV_KEYS = [
   'ARTICLES_OUTPUT_DIR',
   'RSS_FEEDS',
   'PUBSUB_EMULATOR_HOST',
+  'VERTEX_AI_LOCATION',
+  'VERTEX_AI_MODEL',
+  'SENTIMENT_COLLECTION',
 ] as const;
 
 let originalEnv: Partial<Record<(typeof ENV_KEYS)[number], string>>;
@@ -46,6 +49,8 @@ describe('config', () => {
     expect(config.filePublisher.outputDir).toBe('./articles');
     expect(config.rssFeeds).toEqual([]);
     expect(config.pubsubEmulatorHost).toBeNull();
+    expect(config.vertexAi).toEqual({ location: 'us-central1', model: 'gemini-2.5-flash' });
+    expect(config.sentimentCollection).toBe('sentiment');
   });
 
   it('defaults publisherType to gcp in production when PUBLISHER_TYPE is unset', async () => {
@@ -97,5 +102,16 @@ describe('config', () => {
     expect(config.gcp.projectId).toBe('my-project');
     expect(config.gcp.pubsubTopic).toBe('my-topic');
     expect(config.pubsubEmulatorHost).toBe('localhost:8085');
+  });
+
+  it('reads Vertex AI and sentiment collection settings from env', async () => {
+    process.env.VERTEX_AI_LOCATION = 'europe-west1';
+    process.env.VERTEX_AI_MODEL = 'gemini-2.5-pro';
+    process.env.SENTIMENT_COLLECTION = 'coin-sentiment';
+
+    const { default: config } = await import('./config');
+
+    expect(config.vertexAi).toEqual({ location: 'europe-west1', model: 'gemini-2.5-pro' });
+    expect(config.sentimentCollection).toBe('coin-sentiment');
   });
 });

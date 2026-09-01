@@ -29,6 +29,8 @@ vi.mock('./content-resolver', () => ({ resolveMultipleArticles: mockResolveMulti
 // Not under test here, and importing it for real would pull in
 // @google-cloud/firestore for no reason.
 vi.mock('./consumer', () => ({}));
+// Same reasoning, plus it would pull in @google/genai.
+vi.mock('./sentiment-consumer', () => ({}));
 vi.mock('@google-cloud/functions-framework', () => ({ http: vi.fn() }));
 
 import { app } from './index';

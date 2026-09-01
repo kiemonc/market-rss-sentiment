@@ -16,7 +16,17 @@ RSS Feeds ──► Scraper (Cloud Function "app", HTTP)
         Consumer (Cloud Function "consumeArticle", trigger Eventarc)
                         │
                         └─ upsert do Firestore: articles/{id}
+                        │
+                        ▼
+   Sentiment consumer (Cloud Function "analyzeArticleSentiment", trigger Eventarc)
+                        │
+                        ├─ artykuł → LLM (Vertex AI, Gemini) → mapa COIN -> {vector, weight, sentimentDiff}
+                        └─ upsert do Firestore: sentiment/{articleId}
 ```
+
+`consumeArticle` i `analyzeArticleSentiment` mają **osobne** Eventarc-owe subskrypcje na tym
+samym topicu `market-articles` — każdy artykuł trafia do obu konsumentów niezależnie, nie w
+łańcuchu.
 
 Wyzwalanie: Cloud Scheduler POSTuje na `/scrape` co 6h (`0 */6 * * *`, UTC). Sam `/scrape`
 działa **synchronicznie do końca** (nie fire-and-forget) — Cloud Functions nie gwarantuje
@@ -34,6 +44,9 @@ kontynuacji pracy w tle po wysłaniu odpowiedzi, więc cały scrape musi się zm
 | `src/pubsub.ts` | Definicje typów: `Article` → `ArticleWithContent` → `ArticlePayload` (dokładny kształt wiadomości publikowanej do Pub/Sub) |
 | `src/publishers/` | Abstrakcja `Publisher` (`initialize`, `publish`, `close?`) z dwiema implementacjami: `GoogleCloudPublisher` (Pub/Sub, produkcja) i `FilePublisher` (JSONL per-feed, lokalny dev) — wybór przez `PUBLISHER_TYPE` |
 | `src/consumer.ts` | Funkcja `consumeArticle` (Eventarc/Pub/Sub trigger) — dekoduje wiadomość, zapisuje do Firestore |
+| `src/sentiment-analyzer.ts` | `analyzeArticleSentiment()` — wywołuje Vertex AI (Gemini, `@google/genai`, `responseSchema` wymuszający JSON) i zamienia odpowiedź na `SentimentAnalysis` (mapa ticker → `{vector, weight, sentimentDiff}`) |
+| `src/sentiment-consumer.ts` | Funkcja `analyzeArticleSentiment` (Eventarc/Pub/Sub trigger, osobna subskrypcja tego samego topicu co `consumeArticle`) — dekoduje wiadomość, woła `sentiment-analyzer.ts`, zapisuje wynik do Firestore |
+| `src/sentiment.ts` | Typy `CoinSentiment` / `SentimentAnalysis` |
 | `src/config.ts` | Czyta wszystkie zmienne środowiskowe w jednym miejscu |
 
 ## Kontrakt danych (Pub/Sub payload)
@@ -78,6 +91,34 @@ Logika błędów w handlerze (rozróżnienie na poziomie kodu, nie samego `retry
   obsługiwał; logi + powyższy podział wystarczają. Do rewizji, gdyby to miał być
   współdzielony/produkcyjny system.
 
+## Sentiment consumer → Vertex AI → Firestore
+
+`src/sentiment-consumer.ts` rejestruje handler `analyzeArticleSentiment` przez `cloudEvent(...)`,
+zaimportowany w `src/index.ts` z tego samego powodu co `./consumer` (patrz wyżej).
+
+Dla każdej wiadomości (ten sam `ArticlePayload` co konsument Firestore, ale przetwarzany
+niezależnie — osobna subskrypcja tego samego topicu):
+
+1. `src/sentiment-analyzer.ts` woła Vertex AI (`@google/genai`, `vertexai: true`, model z
+   `VERTEX_AI_MODEL`/`config.vertexAi.model`, domyślnie `gemini-2.5-flash`) z promptem proszącym
+   o zidentyfikowanie każdej wspomnianej kryptowaluty; wymusza JSON przez `responseSchema`
+   (`responseMimeType: 'application/json'`), żeby nie trzeba było parsować wolnego tekstu.
+2. Odpowiedź (tablica `{coin, vector, weight, sentimentDiff}`) jest zamieniana na
+   `SentimentAnalysis` — mapę ticker (uppercase) → `CoinSentiment`:
+   - `vector`: `[bullish, bearish, neutral]`, confidence w `[0,1]`, sumujące się w przybliżeniu do 1
+   - `weight`: jak istotna/eksponowana jest dana moneta w artykule, `[0,1]`
+   - `sentimentDiff`: podpisany wpływ artykułu na sentyment inwestorów wobec danej monety,
+     `[-1,1]` — dodatnia wartość = pozytywny, ujemna = negatywny (czysta funkcja tego jednego
+     artykułu, bez odczytu wcześniejszego stanu z Firestore)
+3. Wynik trafia do `sentiment/{articleId}` (`config.sentimentCollection`, domyślnie `sentiment`)
+   jako `set({articleId, source, analyzedAt, coins}, {merge: true})` — idempotentne jak przy
+   konsumencie Firestore.
+
+Ta sama logika trwały/przejściowy błąd co w `consumer.ts`: niesparsowalna wiadomość Pub/Sub lub
+brak `id` → log + `return` (bez retry); błąd wywołania Vertex AI (w tym niepoprawny JSON w
+odpowiedzi — retry może akurat zwrócić poprawny wynik) albo błąd zapisu do Firestore → log +
+`throw` (Pub/Sub retry'uje).
+
 ## Ograniczenia obecnego stanu
 
 - **Dedup jest per-instancja procesu**, nie globalny — `seenArticleIds` w `scraper.ts` żyje
@@ -85,7 +126,5 @@ Logika błędów w handlerze (rozróżnienie na poziomie kodu, nie samego `retry
   każde nowe zimne uruchomienie zaczyna z pustym zbiorem, więc realny dedup na dłuższą metę
   opiera się głównie na tym, że ten sam RSS feed zwykle nie publikuje ponownie starych wpisów —
   nie na tym mechanizmie. Firestore z kolei dedupuje poprawnie i trwale, bo doc ID = `id`.
-- Sentiment analysis (wspomniany w opisie projektu i `architecture.drawio`) **nie jest
-  zaimplementowany** — obecny konsument tylko archiwizuje artykuły do Firestore.
 - `FilePublisher` (tryb `file`) nie jest używany w żadnym wdrożeniu na GCP — istnieje tylko
   do lokalnego dev/demo.

@@ -13,6 +13,7 @@ locals {
     "firebase.googleapis.com",
     "firebaserules.googleapis.com",
     "firebasehosting.googleapis.com",
+    "aiplatform.googleapis.com",
   ]
 }
 

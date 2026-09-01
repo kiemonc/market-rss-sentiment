@@ -4,11 +4,12 @@ import config from './config';
 import { createPublisher, Publisher } from './publishers';
 import { scrapeAllFeeds } from './scraper';
 import { resolveMultipleArticles } from './content-resolver';
-// Side-effect import: registers 'consumeArticle' in the functions-framework
-// registry. The framework always loads dist/index.js (package.json's main)
-// regardless of which entry_point/FUNCTION_TARGET a given deployment uses, so
-// the consumer's registration must happen here to be discoverable at all.
+// Side-effect imports: registers 'consumeArticle' and 'analyzeArticleSentiment' in the
+// functions-framework registry. The framework always loads dist/index.js (package.json's main)
+// regardless of which entry_point/FUNCTION_TARGET a given deployment uses, so each consumer's
+// registration must happen here to be discoverable at all.
 import './consumer';
+import './sentiment-consumer';
 
 const app = express();
 

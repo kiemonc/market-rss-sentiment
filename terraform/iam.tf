@@ -85,3 +85,48 @@ resource "google_cloud_run_v2_service_iam_member" "consumer_invoker" {
   role     = "roles/run.invoker"
   member   = "serviceAccount:${google_service_account.consumer_runtime.email}"
 }
+
+# Runtime identity for the LLM sentiment-analysis consumer function: Vertex AI
+# calls plus Firestore write access and logging.
+resource "google_service_account" "sentiment_consumer_runtime" {
+  # account_id is capped at 30 chars by GCP (and can't end in "-"); truncate to
+  # fit regardless of sentiment_consumer_function_name's length (same issue hit
+  # earlier with GCS bucket names and the Firestore consumer's SA).
+  account_id   = trimsuffix(substr("${var.sentiment_consumer_function_name}-runtime", 0, 30), "-")
+  display_name = "Runtime SA for ${var.sentiment_consumer_function_name} Cloud Function"
+  project      = var.project_id
+}
+
+resource "google_project_iam_member" "sentiment_consumer_datastore_user" {
+  project = var.project_id
+  role    = "roles/datastore.user"
+  member  = "serviceAccount:${google_service_account.sentiment_consumer_runtime.email}"
+}
+
+resource "google_project_iam_member" "sentiment_consumer_log_writer" {
+  project = var.project_id
+  role    = "roles/logging.logWriter"
+  member  = "serviceAccount:${google_service_account.sentiment_consumer_runtime.email}"
+}
+
+resource "google_project_iam_member" "sentiment_consumer_eventarc_receiver" {
+  project = var.project_id
+  role    = "roles/eventarc.eventReceiver"
+  member  = "serviceAccount:${google_service_account.sentiment_consumer_runtime.email}"
+}
+
+resource "google_project_iam_member" "sentiment_consumer_vertex_ai_user" {
+  project = var.project_id
+  role    = "roles/aiplatform.user"
+  member  = "serviceAccount:${google_service_account.sentiment_consumer_runtime.email}"
+}
+
+# Eventarc invokes this function's underlying Cloud Run service using the
+# event_trigger's service_account_email; same pattern as consumer_invoker above.
+resource "google_cloud_run_v2_service_iam_member" "sentiment_consumer_invoker" {
+  project  = var.project_id
+  location = var.region
+  name     = google_cloudfunctions2_function.sentiment_consumer.service_config[0].service
+  role     = "roles/run.invoker"
+  member   = "serviceAccount:${google_service_account.sentiment_consumer_runtime.email}"
+}

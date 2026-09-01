@@ -10,16 +10,18 @@ Wszystko poniżej jest w `terraform/*.tf` i wdrożone w projekcie GCP `cloud-pla
 |---|---|---|
 | Cloud Function (scraper) | `function.tf` | `market-rss-sentiment`, Node.js 24, HTTP, entry point `app` |
 | Cloud Function (consumer) | `consumer.tf` | `market-rss-sentiment-consumer`, Node.js 24, trigger Eventarc/Pub/Sub, entry point `consumeArticle` |
+| Cloud Function (sentiment consumer) | `sentiment-consumer.tf` | `market-rss-sentiment-sentiment-consumer`, Node.js 24, trigger Eventarc/Pub/Sub (osobna subskrypcja tego samego topicu), entry point `analyzeArticleSentiment` — woła Vertex AI |
 | Pub/Sub topic | `pubsub.tf` | `market-articles` |
 | Firestore database | `firestore.tf` | `(default)`, native mode, `us-central1`, `deletion_policy = ABANDON` |
 | Cloud Scheduler job | `scheduler.tf` | `market-rss-sentiment-scrape`, cron `0 */6 * * *` (UTC), POST `{function_url}/scrape` z OIDC |
 | GCS bucket (źródło) | `storage.tf` | `{project_id}-{function_name}-src-{losowy hex}` (nazwa obcinana do 63 znaków — limit GCS) |
 | Service accounts | `iam.tf` | patrz tabela IAM niżej |
 
-Obie funkcje (scraper i consumer) dzielą **ten sam zip źródeł** (`data.archive_file.function_source`
-w `storage.tf`, zipuje cały katalog repo minus `node_modules`/`dist`/`.git`/`.idea`/`articles`/`terraform`)
-i ten sam skompilowany `dist/` — różni je tylko `entry_point`. Zmiana w `src/` wymusza nowy hash
-zipa → nowy `google_storage_bucket_object` → redeploy obu funkcji przy kolejnym `apply`.
+Wszystkie trzy funkcje (scraper, consumer, sentiment consumer) dzielą **ten sam zip źródeł**
+(`data.archive_file.function_source` w `storage.tf`, zipuje cały katalog repo minus
+`node_modules`/`dist`/`.git`/`.idea`/`articles`/`terraform`) i ten sam skompilowany `dist/` —
+różni je tylko `entry_point`. Zmiana w `src/` wymusza nowy hash zipa → nowy
+`google_storage_bucket_object` → redeploy wszystkich trzech funkcji przy kolejnym `apply`.
 
 ## IAM
 
@@ -28,11 +30,13 @@ zipa → nowy `google_storage_bucket_object` → redeploy obu funkcji przy kolej
 | `market-rss-sentiment-runtime` | `roles/pubsub.publisher` (na topicu), `roles/logging.logWriter` | runtime scrapera — publikuje artykuły |
 | `market-rss-sentiment-scheduler` | `roles/run.invoker` (na Cloud Run service scrapera) | Cloud Scheduler woła `/scrape` przez OIDC z tą tożsamością |
 | `market-rss-sentiment-consumer` | `roles/datastore.user`, `roles/logging.logWriter`, `roles/eventarc.eventReceiver`, `roles/run.invoker` (na własnym Cloud Run service) | runtime konsumenta — zapis do Firestore + odbiór eventów z Eventarc |
+| `market-rss-sentiment-sentiment` (account_id obcięty do 30 znaków, patrz `iam.tf`) | `roles/datastore.user`, `roles/logging.logWriter`, `roles/eventarc.eventReceiver`, `roles/aiplatform.user`, `roles/run.invoker` (na własnym Cloud Run service) | runtime konsumenta sentymentu — wywołania Vertex AI + zapis do Firestore + odbiór eventów z Eventarc |
 
 Żadna z funkcji nie jest publicznie wywoływalna domyślnie:
 - scraper: `ingress_settings = ALLOW_ALL`, ale invoker tylko dla `scheduler` SA
   (`allow_unauthenticated = true` to zmienia — patrz `variables.tf`)
-- consumer: `ingress_settings = ALLOW_INTERNAL_ONLY` — tylko Eventarc może wywołać
+- consumer i sentiment consumer: `ingress_settings = ALLOW_INTERNAL_ONLY` — tylko Eventarc może
+  wywołać
 
 ## Zmienne (`variables.tf`) — wartości domyślne
 
@@ -54,8 +58,20 @@ zipa → nowy `google_storage_bucket_object` → redeploy obu funkcji przy kolej
 | `consumer_timeout_seconds` | `60` | konsument |
 | `consumer_min_instance_count` / `consumer_max_instance_count` | `0` / `5` | konsument |
 | `consumer_retry_policy` | `RETRY_POLICY_RETRY` | trigger Eventarc konsumenta |
+| `sentiment_consumer_function_name` | `market-rss-sentiment-sentiment-consumer` | konsument sentymentu |
+| `sentiment_consumer_available_memory` / `sentiment_consumer_available_cpu` | `512Mi` / `1` | konsument sentymentu |
+| `sentiment_consumer_timeout_seconds` | `120` | konsument sentymentu (wywołanie Vertex AI dominuje czas) |
+| `sentiment_consumer_min_instance_count` / `sentiment_consumer_max_instance_count` | `0` / `5` | konsument sentymentu |
+| `sentiment_consumer_retry_policy` | `RETRY_POLICY_RETRY` | trigger Eventarc konsumenta sentymentu |
+| `vertex_ai_location` | `us-central1` | konsument sentymentu (`VERTEX_AI_LOCATION` env) |
+| `vertex_ai_model` | `gemini-2.5-flash` | konsument sentymentu (`VERTEX_AI_MODEL` env) |
+| `sentiment_collection` | `sentiment` | konsument sentymentu (`SENTIMENT_COLLECTION` env) |
 
 ## Outputs (realny stan po ostatnim apply)
+
+`sentiment_consumer_function_name` i `sentiment_consumer_service_account` istnieją już w
+`outputs.tf`, ale nie są jeszcze w bloku "realny stan" poniżej — zostaną tam dopisane po
+najbliższym `terraform apply` (funkcja jeszcze nie wdrożona).
 
 ```
 function_url              = https://us-central1-cloud-playground-mchmielecki.cloudfunctions.net/market-rss-sentiment
