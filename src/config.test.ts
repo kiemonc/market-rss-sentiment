@@ -49,7 +49,7 @@ describe('config', () => {
     expect(config.filePublisher.outputDir).toBe('./articles');
     expect(config.rssFeeds).toEqual([]);
     expect(config.pubsubEmulatorHost).toBeNull();
-    expect(config.vertexAi).toEqual({ location: 'us-central1', model: 'gemini-2.5-flash' });
+    expect(config.vertexAi).toEqual({ location: 'us-central1', model: 'gemini-2.5-flash-lite' });
     expect(config.sentimentCollection).toBe('sentiment');
   });
 

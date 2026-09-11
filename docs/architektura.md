@@ -100,9 +100,13 @@ Dla każdej wiadomości (ten sam `ArticlePayload` co konsument Firestore, ale pr
 niezależnie — osobna subskrypcja tego samego topicu):
 
 1. `src/sentiment-analyzer.ts` woła Vertex AI (`@google/genai`, `vertexai: true`, model z
-   `VERTEX_AI_MODEL`/`config.vertexAi.model`, domyślnie `gemini-2.5-flash`) z promptem proszącym
-   o zidentyfikowanie każdej wspomnianej kryptowaluty; wymusza JSON przez `responseSchema`
-   (`responseMimeType: 'application/json'`), żeby nie trzeba było parsować wolnego tekstu.
+   `VERTEX_AI_MODEL`/`config.vertexAi.model`, domyślnie `gemini-2.5-flash-lite` — tańszy niż
+   `gemini-2.5-flash`, wystarczający do tego prostego, strukturalnego zadania ekstrakcji) z
+   promptem proszącym o zidentyfikowanie każdej wspomnianej kryptowaluty; wymusza JSON przez
+   `responseSchema` (`responseMimeType: 'application/json'`), żeby nie trzeba było parsować
+   wolnego tekstu. `thinkingConfig: { thinkingBudget: 0 }` wyłącza dynamiczne "myślenie" modelu —
+   bez tego 2.5-owe modele domyślnie generują niewidoczne tokeny rozumowania rozliczane jak
+   output, zbędne dla zadania bez wieloetapowego wnioskowania.
 2. Odpowiedź (tablica `{coin, vector, weight, sentimentDiff}`) jest zamieniana na
    `SentimentAnalysis` — mapę ticker (uppercase) → `CoinSentiment`:
    - `vector`: `[bullish, bearish, neutral]`, confidence w `[0,1]`, sumujące się w przybliżeniu do 1

@@ -195,7 +195,7 @@ variable "vertex_ai_location" {
 variable "vertex_ai_model" {
   description = "Vertex AI generative model used for per-article sentiment analysis."
   type        = string
-  default     = "gemini-2.5-flash"
+  default     = "gemini-2.5-flash-lite"
 }
 
 variable "sentiment_collection" {

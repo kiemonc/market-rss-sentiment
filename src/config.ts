@@ -57,7 +57,7 @@ const config: Config = {
 
   vertexAi: {
     location: process.env.VERTEX_AI_LOCATION || 'us-central1',
-    model: process.env.VERTEX_AI_MODEL || 'gemini-2.5-flash',
+    model: process.env.VERTEX_AI_MODEL || 'gemini-2.5-flash-lite',
   },
 
   sentimentCollection: process.env.SENTIMENT_COLLECTION || 'sentiment',

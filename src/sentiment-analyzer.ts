@@ -78,6 +78,9 @@ async function analyzeArticleSentiment(article: ArticleForAnalysis, cfg: Config)
     config: {
       responseMimeType: 'application/json',
       responseSchema: RESPONSE_SCHEMA,
+      // This is a single-shot structured extraction, not multi-step reasoning — dynamic
+      // thinking would otherwise bill hidden reasoning tokens for no accuracy benefit here.
+      thinkingConfig: { thinkingBudget: 0 },
     },
   });
 

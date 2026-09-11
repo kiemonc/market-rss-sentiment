@@ -64,7 +64,7 @@ różni je tylko `entry_point`. Zmiana w `src/` wymusza nowy hash zipa → nowy
 | `sentiment_consumer_min_instance_count` / `sentiment_consumer_max_instance_count` | `0` / `5` | konsument sentymentu |
 | `sentiment_consumer_retry_policy` | `RETRY_POLICY_RETRY` | trigger Eventarc konsumenta sentymentu |
 | `vertex_ai_location` | `us-central1` | konsument sentymentu (`VERTEX_AI_LOCATION` env) |
-| `vertex_ai_model` | `gemini-2.5-flash` | konsument sentymentu (`VERTEX_AI_MODEL` env) |
+| `vertex_ai_model` | `gemini-2.5-flash-lite` | konsument sentymentu (`VERTEX_AI_MODEL` env) — tańszy niż `flash`, wystarczający do ekstrakcji strukturalnej |
 | `sentiment_collection` | `sentiment` | konsument sentymentu (`SENTIMENT_COLLECTION` env) |
 
 ## Outputs (realny stan po ostatnim apply)
