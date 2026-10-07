@@ -29,7 +29,7 @@ RSS Feeds ──► Scraper (Cloud Function "app", HTTP)
 samym topicu `market-articles` — każdy artykuł trafia do obu konsumentów niezależnie, nie w
 łańcuchu.
 
-Wyzwalanie: Cloud Scheduler POSTuje na `/scrape` co 6h (`0 */6 * * *`, UTC). Sam `/scrape`
+Wyzwalanie: Cloud Scheduler POSTuje na `/scrape` co 30 min (`*/30 * * * *`, UTC). Sam `/scrape`
 działa **synchronicznie do końca** (nie fire-and-forget) — Cloud Functions nie gwarantuje
 kontynuacji pracy w tle po wysłaniu odpowiedzi, więc cały scrape musi się zmieścić w
 `timeout_seconds` (patrz [infrastruktura.md](./infrastruktura.md)).

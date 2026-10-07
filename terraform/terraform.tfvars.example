@@ -11,7 +11,7 @@ rss_feeds = [
   { name = "newsbtc", url = "https://www.newsbtc.com/feed/" },
 ]
 
-schedule            = "0 */6 * * *"
+schedule            = "*/30 * * * *"
 schedule_time_zone  = "Etc/UTC"
 
 allow_unauthenticated = false

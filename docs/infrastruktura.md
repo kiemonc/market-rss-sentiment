@@ -13,7 +13,7 @@ Wszystko poniżej jest w `terraform/*.tf` i wdrożone w projekcie GCP `cloud-pla
 | Cloud Function (sentiment consumer) | `sentiment-consumer.tf` | `market-rss-sentiment-sentiment-consumer`, Node.js 24, trigger Eventarc/Pub/Sub (osobna subskrypcja tego samego topicu), entry point `analyzeArticleSentiment` — woła Vertex AI |
 | Pub/Sub topic | `pubsub.tf` | `market-articles` |
 | Firestore database | `firestore.tf` | `(default)`, native mode, `us-central1`, `deletion_policy = ABANDON` |
-| Cloud Scheduler job | `scheduler.tf` | `market-rss-sentiment-scrape`, cron `0 */6 * * *` (UTC), POST `{function_url}/scrape` z OIDC |
+| Cloud Scheduler job | `scheduler.tf` | `market-rss-sentiment-scrape`, cron `*/30 * * * *` (UTC), POST `{function_url}/scrape` z OIDC |
 | GCS bucket (źródło) | `storage.tf` | `{project_id}-{function_name}-src-{losowy hex}` (nazwa obcinana do 63 znaków — limit GCS) |
 | Service accounts | `iam.tf` | patrz tabela IAM niżej |
 
@@ -49,7 +49,7 @@ różni je tylko `entry_point`. Zmiana w `src/` wymusza nowy hash zipa → nowy
 | `available_memory` / `available_cpu` | `512Mi` / `1` | scraper |
 | `timeout_seconds` | `3600` | scraper (`/scrape` musi się zmieścić) |
 | `min_instance_count` / `max_instance_count` | `0` / `1` | scraper |
-| `schedule` / `schedule_time_zone` | `0 */6 * * *` / `Etc/UTC` | Cloud Scheduler |
+| `schedule` / `schedule_time_zone` | `*/30 * * * *` / `Etc/UTC` | Cloud Scheduler |
 | `allow_unauthenticated` | `false` | scraper — publiczny dostęp HTTP |
 | `firestore_location` | `us-central1` | Firestore |
 | `firestore_collection` | `articles` | konsument (`FIRESTORE_COLLECTION` env) |

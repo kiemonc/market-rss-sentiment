@@ -10,6 +10,6 @@ nie duplikują tego, co już widać w kodzie.
 
 ## Skrót jednym zdaniem
 
-RSS → scraper (Cloud Function `market-rss-sentiment`, HTTP, wyzwalany co 6h przez Cloud Scheduler) →
+RSS → scraper (Cloud Function `market-rss-sentiment`, HTTP, wyzwalany co 30 min przez Cloud Scheduler) →
 dedup + pobranie pełnej treści → Pub/Sub (`market-articles`) → konsument (Cloud Function
 `market-rss-sentiment-consumer`, trigger Eventarc) → Firestore (`articles/{id}`).

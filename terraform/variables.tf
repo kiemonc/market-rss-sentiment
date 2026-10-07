@@ -69,7 +69,7 @@ variable "max_instance_count" {
 variable "schedule" {
   description = "Cron schedule (Cloud Scheduler syntax) for triggering /scrape."
   type        = string
-  default     = "0 */6 * * *"
+  default     = "*/30 * * * *"
 }
 
 variable "schedule_time_zone" {
