@@ -5,7 +5,19 @@ import { MatInputModule } from '@angular/material/input';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatSelectModule } from '@angular/material/select';
 import { MatSlideToggleModule } from '@angular/material/slide-toggle';
-import { Chart, type ChartConfiguration, type ChartDataset, type TooltipItem, registerables } from 'chart.js';
+import { Router } from '@angular/router';
+import {
+  Chart,
+  type ChartConfiguration,
+  type ChartDataset,
+  type ChartEvent,
+  Interaction,
+  type InteractionItem,
+  type InteractionModeFunction,
+  type TooltipItem,
+  registerables,
+} from 'chart.js';
+import { getRelativePosition } from 'chart.js/helpers';
 import 'chartjs-adapter-date-fns';
 import { CandlestickController, CandlestickElement } from 'chartjs-chart-financial';
 import { debounceTime, distinctUntilChanged } from 'rxjs';
@@ -21,9 +33,49 @@ import {
   computeSentimentIndex,
   observationsByCoin,
   timeGrid,
+  withObservationTimes,
 } from './sentiment-timeline.util';
 
 Chart.register(...registerables, CandlestickController, CandlestickElement);
+
+declare module 'chart.js' {
+  interface InteractionModeMap {
+    nearestPerDataset: InteractionModeFunction;
+  }
+}
+
+/**
+ * Tooltip/hover mode for this chart's mix of series with different x positions (sentiment lines
+ * on a grid, candles per interval, articles at their publish times), where Chart.js's 'index'
+ * mode would pair up unrelated points by array index. Takes the x-nearest element of every
+ * continuous series, plus any article points actually under the pointer.
+ */
+Interaction.modes.nearestPerDataset = (chart, e, _options, useFinalPosition) => {
+  const pos = getRelativePosition(e, chart);
+  const { left, right, top, bottom } = chart.chartArea;
+  if (pos.x < left || pos.x > right || pos.y < top || pos.y > bottom) return [];
+
+  const items: InteractionItem[] = [];
+  chart.data.datasets.forEach((dataset, datasetIndex) => {
+    if (!chart.isDatasetVisible(datasetIndex)) return;
+    const elements = chart.getDatasetMeta(datasetIndex).data;
+    if (isArticleDataset(dataset)) {
+      elements.forEach((element, index) => {
+        const { x, y } = element.getProps(['x', 'y'], useFinalPosition);
+        if (Math.hypot(x - pos.x, y - pos.y) <= ARTICLE_HIT_RADIUS) items.push({ element, datasetIndex, index });
+      });
+      return;
+    }
+    let best = -1;
+    let bestDistance = Infinity;
+    elements.forEach((element, index) => {
+      const distance = Math.abs(element.getProps(['x'], useFinalPosition)['x'] - pos.x);
+      if (distance < bestDistance) [best, bestDistance] = [index, distance];
+    });
+    if (best >= 0) items.push({ element: elements[best], datasetIndex, index: best });
+  });
+  return items;
+};
 
 const DEFAULT_RANGE_DAYS = 60;
 const DEFAULT_COINS = ['BTC'];
@@ -33,6 +85,9 @@ const ZERO_LINE_COLOR = '#9a998f';
 /** Muted classic up/down candle colors, used when a single coin's candles carry no identity role. */
 const CANDLE_UP = '#1baf7a';
 const CANDLE_DOWN = '#e34948';
+/** Pointer distance (px) within which an article point counts as hovered/clicked. */
+const ARTICLE_HIT_RADIUS = 8;
+const ARTICLE_POINT_BORDER = '#ffffff';
 /** Articles older than this many half-lives before `from` contribute < 2^-5 ≈ 3% and aren't loaded. */
 const LOOKBACK_HALF_LIVES = 5;
 
@@ -47,6 +102,16 @@ export const HALF_LIFE_OPTIONS = [
 interface CoinOption {
   coin: string;
   articles: number;
+}
+
+interface ArticlePoint {
+  x: number;
+  /** The index value right after this article was folded in, so the point sits on the line. */
+  y: number;
+  articleId: string;
+  title?: string;
+  impact: number;
+  relevance: number;
 }
 
 interface CandleWithRaw extends Candle {
@@ -71,6 +136,7 @@ export class SentimentTimelineComponent implements AfterViewInit, OnDestroy {
   private readonly articleService = inject(ArticleService);
   private readonly priceService = inject(PriceService);
   private readonly fb = inject(FormBuilder);
+  private readonly router = inject(Router);
 
   readonly halfLifeOptions = HALF_LIFE_OPTIONS;
   readonly maxCoins = MAX_COINS;
@@ -80,7 +146,7 @@ export class SentimentTimelineComponent implements AfterViewInit, OnDestroy {
     from: this.fb.control(isoDaysAgo(DEFAULT_RANGE_DAYS)),
     to: this.fb.control(isoDaysAgo(0)),
     halfLifeHours: this.fb.control(24),
-    showPrices: this.fb.control(false),
+    showPrices: this.fb.control(true),
   });
 
   @ViewChild('canvas') private canvasRef!: ElementRef<HTMLCanvasElement>;
@@ -158,14 +224,15 @@ export class SentimentTimelineComponent implements AfterViewInit, OnDestroy {
       : [];
     if (token !== this.loadToken) return;
 
-    const times = timeGrid(fromMs, toMs);
-    const series = selected.map((coin) => ({
-      coin,
-      points: computeSentimentIndex(byCoin.get(coin) ?? ([] as SentimentObservation[]), times, {
+    const grid = timeGrid(fromMs, toMs);
+    const series = selected.map((coin) => {
+      const observations = byCoin.get(coin) ?? ([] as SentimentObservation[]);
+      const points = computeSentimentIndex(observations, withObservationTimes(grid, observations, fromMs, toMs), {
         halfLifeMs,
         priorWeight: DEFAULT_PRIOR_WEIGHT,
-      }),
-    }));
+      });
+      return { coin, points, articles: articlePoints(observations, points, fromMs, toMs) };
+    });
     const candles = selected
       .map((coin, i) => ({ coin, candles: prices[i] }))
       .filter((p): p is { coin: string; candles: Candle[] } => !!p.candles?.length);
@@ -173,11 +240,23 @@ export class SentimentTimelineComponent implements AfterViewInit, OnDestroy {
 
     this.chart?.destroy();
     this.chart = new Chart(this.canvasRef.nativeElement, this.buildConfig(series, candles, fromMs, toMs));
+
     this.loading = false;
   }
 
+  private openArticle(event: ChartEvent, articles: ArticlePoint[]): void {
+    if (!articles.length) return;
+    const url = this.router.serializeUrl(this.router.createUrlTree(['/articles', articles[0].articleId]));
+    const native = event.native as MouseEvent | null;
+    if (native?.ctrlKey || native?.metaKey) {
+      window.open(url, '_blank');
+    } else {
+      this.router.navigateByUrl(url);
+    }
+  }
+
   private buildConfig(
-    series: { coin: string; points: SentimentIndexPoint[] }[],
+    series: { coin: string; points: SentimentIndexPoint[]; articles: ArticlePoint[] }[],
     prices: { coin: string; candles: Candle[] }[],
     fromMs: number,
     toMs: number
@@ -199,10 +278,26 @@ export class SentimentTimelineComponent implements AfterViewInit, OnDestroy {
         borderWidth: 2,
         pointRadius: 0,
         pointHoverRadius: 5,
-        tension: 0.2,
+        tension: 0, // the index jumps at each article; smoothing would overshoot around those steps
         order: 0, // draw on top of the candles
       })
     );
+
+    const articleDatasets: ChartDataset<'line', ArticlePoint[]>[] = series.map(({ coin, articles }) => ({
+      type: 'line',
+      label: `${coin} articles`,
+      data: articles,
+      yAxisID: 'ySentiment',
+      showLine: false,
+      borderColor: ARTICLE_POINT_BORDER,
+      backgroundColor: this.colorFor(coin),
+      borderWidth: 1.5,
+      // Point size encodes the article's relevance to the coin: 3px (marginal) to 6px (all about it).
+      pointRadius: articles.map((a) => 3 + 3 * a.relevance),
+      pointHoverRadius: articles.map((a) => 5 + 3 * a.relevance),
+      pointHitRadius: ARTICLE_HIT_RADIUS,
+      order: -1, // on top of the lines
+    }));
 
     const candleDatasets = prices.map(({ coin, candles }) => {
       const color = this.colorFor(coin);
@@ -229,13 +324,23 @@ export class SentimentTimelineComponent implements AfterViewInit, OnDestroy {
 
     return {
       type: 'line',
-      data: { datasets: [...sentimentDatasets, ...(candleDatasets as unknown as ChartDataset<'line'>[])] },
+      data: {
+        datasets: [
+          ...sentimentDatasets,
+          ...(articleDatasets as unknown as ChartDataset<'line'>[]),
+          ...(candleDatasets as unknown as ChartDataset<'line'>[]),
+        ],
+      },
       options: {
         responsive: true,
         maintainAspectRatio: false,
         parsing: false,
         animation: false,
-        interaction: { mode: 'nearest', axis: 'x', intersect: false },
+        interaction: { mode: 'nearestPerDataset', intersect: false },
+        onHover: (event, elements, chart) => {
+          chart.canvas.style.cursor = hoveredArticles(chart, elements).length ? 'pointer' : 'default';
+        },
+        onClick: (event, elements, chart) => this.openArticle(event, hoveredArticles(chart, elements)),
         scales: {
           x: {
             type: 'time',
@@ -270,11 +375,13 @@ export class SentimentTimelineComponent implements AfterViewInit, OnDestroy {
         plugins: {
           legend: { position: 'top', labels: { usePointStyle: true } },
           tooltip: {
-            mode: 'index',
-            intersect: false,
+            // Hovered articles first: they're what the pointer is actually on.
+            itemSort: (a, b) => +isArticleDataset(b.dataset) - +isArticleDataset(a.dataset),
             callbacks: {
               title: (items) => (items[0] ? new Date(items[0].parsed.x as number).toLocaleString() : ''),
               label: (item) => tooltipLabel(item),
+              footer: (items) =>
+                items.some((i) => isArticleDataset(i.dataset)) ? 'Click to open the article (Ctrl/⌘-click: new tab)' : '',
             },
           },
         },
@@ -283,8 +390,46 @@ export class SentimentTimelineComponent implements AfterViewInit, OnDestroy {
   }
 }
 
+function isArticleDataset(dataset: { label?: string }): boolean {
+  return dataset.label?.endsWith(' articles') ?? false;
+}
+
+function hoveredArticles(chart: Chart, elements: { datasetIndex: number; index: number }[]): ArticlePoint[] {
+  return elements
+    .filter((e) => isArticleDataset(chart.data.datasets[e.datasetIndex]))
+    .map((e) => chart.data.datasets[e.datasetIndex].data[e.index] as unknown as ArticlePoint);
+}
+
+/** One point per in-range article, placed on the index line at the article's publish time. */
+function articlePoints(
+  observations: SentimentObservation[],
+  points: SentimentIndexPoint[],
+  fromMs: number,
+  toMs: number
+): ArticlePoint[] {
+  const valueAt = new Map(points.map((p) => [p.time, p.value]));
+  return observations
+    .filter((o) => o.articleId && o.time >= fromMs && o.time <= toMs)
+    .map((o) => ({
+      x: o.time,
+      y: valueAt.get(o.time) ?? 0,
+      articleId: o.articleId!,
+      title: o.title,
+      impact: o.value,
+      relevance: o.weight,
+    }));
+}
+
+const MAX_TITLE_LENGTH = 90;
+
 function tooltipLabel(item: TooltipItem<keyof import('chart.js').ChartTypeRegistry>): string {
-  const raw = item.raw as { y?: number; evidence?: number; raw?: Candle };
+  const raw = item.raw as { y?: number; evidence?: number; raw?: Candle } & Partial<ArticlePoint>;
+  if (raw.articleId) {
+    const title = raw.title ?? 'Untitled article';
+    const shortTitle = title.length > MAX_TITLE_LENGTH ? `${title.slice(0, MAX_TITLE_LENGTH - 1)}…` : title;
+    const coin = item.dataset.label?.replace(/ articles$/, '');
+    return `${coin} · ${shortTitle} (impact ${formatSigned(raw.impact ?? 0, 2)}, relevance ${Math.round((raw.relevance ?? 0) * 100)}%)`;
+  }
   if (raw.raw) {
     const { o, h, l, c } = raw.raw;
     return `${item.dataset.label}: O ${formatUsd(o)}  H ${formatUsd(h)}  L ${formatUsd(l)}  C ${formatUsd(c)}`;

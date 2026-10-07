@@ -6,6 +6,7 @@ import {
   HOUR_MS,
   observationsByCoin,
   timeGrid,
+  withObservationTimes,
 } from './sentiment-timeline.util';
 
 const OPTIONS = { halfLifeMs: 10 * HOUR_MS, priorWeight: 0.5 };
@@ -91,10 +92,28 @@ describe('observationsByCoin / coinsByCoverage', () => {
     ]);
 
     expect(byCoin.get('BTC')!.map((o) => o.value)).toEqual([-0.2, 0.3]);
+    expect(byCoin.get('BTC')![0].articleId).toBe('a');
     expect(byCoin.has('SOL')).toBeFalse();
     expect(coinsByCoverage(byCoin)).toEqual([
       { coin: 'BTC', articles: 2 },
       { coin: 'ETH', articles: 1 },
+    ]);
+  });
+});
+
+describe('withObservationTimes', () => {
+  it('merges in-range observation times into the grid, sorted and deduped', () => {
+    const obs = [
+      { time: -1, value: 0, weight: 1 },
+      { time: HOUR_MS, value: 0, weight: 1 },
+      { time: 1.5 * HOUR_MS, value: 0, weight: 1 },
+      { time: 9 * HOUR_MS, value: 0, weight: 1 },
+    ];
+    expect(withObservationTimes([0, HOUR_MS, 2 * HOUR_MS], obs, 0, 2 * HOUR_MS)).toEqual([
+      0,
+      HOUR_MS,
+      1.5 * HOUR_MS,
+      2 * HOUR_MS,
     ]);
   });
 });

@@ -68,8 +68,10 @@ async function handleArticleSentiment(event: CloudEvent<MessagePublishedData>): 
           articleId: payload.id,
           source: payload.source,
           // Denormalized from the article so the frontend's sentiment-over-time chart can
-          // range-query/orderBy this collection alone instead of joining against `articles`.
+          // range-query/orderBy this collection alone (and label its per-article points)
+          // instead of joining against `articles`, whose docs carry the full content.
           publishedAt: payload.publishedAt,
+          title: payload.title,
           analyzedAt: new Date().toISOString(),
           coins,
         },

@@ -113,6 +113,7 @@ describe('handleArticleSentiment', () => {
         articleId: 'article-1',
         source: 'bloomberg',
         publishedAt: validArticle.publishedAt,
+        title: 'Title',
         coins: sentimentResult,
       }),
       { merge: true }
