@@ -33,11 +33,14 @@ resource "google_cloudfunctions2_function" "scraper" {
       GCP_PROJECT_ID = var.project_id
       PUBSUB_TOPIC   = google_pubsub_topic.articles.name
       RSS_FEEDS      = jsonencode(var.rss_feeds)
+      # Read-only: to skip articles an earlier run already stored (src/known-articles.ts).
+      FIRESTORE_COLLECTION = var.firestore_collection
     }
   }
 
   depends_on = [
     google_project_service.apis,
     google_pubsub_topic_iam_member.function_publisher,
+    google_project_iam_member.function_datastore_viewer,
   ]
 }

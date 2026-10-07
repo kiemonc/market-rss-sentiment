@@ -1,4 +1,5 @@
-# Runtime identity for the function: only what it needs to publish articles.
+# Runtime identity for the function: only what it needs to publish articles, plus read-only
+# Firestore access to skip articles an earlier run already stored (src/known-articles.ts).
 resource "google_service_account" "function_runtime" {
   account_id   = "${var.function_name}-runtime"
   display_name = "Runtime SA for ${var.function_name} Cloud Function"
@@ -9,6 +10,12 @@ resource "google_pubsub_topic_iam_member" "function_publisher" {
   topic  = google_pubsub_topic.articles.name
   role   = "roles/pubsub.publisher"
   member = "serviceAccount:${google_service_account.function_runtime.email}"
+}
+
+resource "google_project_iam_member" "function_datastore_viewer" {
+  project = var.project_id
+  role    = "roles/datastore.viewer"
+  member  = "serviceAccount:${google_service_account.function_runtime.email}"
 }
 
 resource "google_project_iam_member" "function_log_writer" {

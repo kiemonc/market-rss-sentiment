@@ -26,6 +26,10 @@ vi.mock('./scraper', () => ({ scrapeAllFeeds: mockScrapeAllFeeds }));
 const mockResolveMultipleArticles = vi.hoisted(() => vi.fn());
 vi.mock('./content-resolver', () => ({ resolveMultipleArticles: mockResolveMultipleArticles }));
 
+// Passthrough: the Firestore-backed "already stored" filter has its own tests.
+const mockFilterUnseenArticles = vi.hoisted(() => vi.fn(async (articles: unknown[]) => articles));
+vi.mock('./known-articles', () => ({ filterUnseenArticles: mockFilterUnseenArticles }));
+
 // Not under test here, and importing it for real would pull in
 // @google-cloud/firestore for no reason.
 vi.mock('./consumer', () => ({}));

@@ -4,6 +4,7 @@ import config from './config';
 import { createPublisher, Publisher } from './publishers';
 import { scrapeAllFeeds } from './scraper';
 import { resolveMultipleArticles } from './content-resolver';
+import { filterUnseenArticles } from './known-articles';
 // Side-effect imports: registers 'consumeArticle' and 'analyzeArticleSentiment' in the
 // functions-framework registry. The framework always loads dist/index.js (package.json's main)
 // regardless of which entry_point/FUNCTION_TARGET a given deployment uses, so each consumer's
@@ -61,8 +62,9 @@ app.post('/scrape', async (req: Request, res: Response) => {
 
     const activePublisher = await getPublisher();
 
-    const articles = await scrapeAllFeeds(config.rssFeeds);
-    console.log(`\nTotal new articles fetched: ${articles.length}`);
+    const scraped = await scrapeAllFeeds(config.rssFeeds);
+    const articles = await filterUnseenArticles(scraped, config);
+    console.log(`\nTotal articles in feeds: ${scraped.length}, not yet stored: ${articles.length}`);
 
     // Resolve full content for each article
     const articlesWithContent = await resolveMultipleArticles(articles);

@@ -27,7 +27,7 @@ różni je tylko `entry_point`. Zmiana w `src/` wymusza nowy hash zipa → nowy
 
 | Service account | Role | Po co |
 |---|---|---|
-| `market-rss-sentiment-runtime` | `roles/pubsub.publisher` (na topicu), `roles/logging.logWriter` | runtime scrapera — publikuje artykuły |
+| `market-rss-sentiment-runtime` | `roles/pubsub.publisher` (na topicu), `roles/datastore.viewer`, `roles/logging.logWriter` | runtime scrapera — publikuje artykuły; odczyt `articles`, żeby pominąć już zapisane |
 | `market-rss-sentiment-scheduler` | `roles/run.invoker` (na Cloud Run service scrapera) | Cloud Scheduler woła `/scrape` przez OIDC z tą tożsamością |
 | `market-rss-sentiment-consumer` | `roles/datastore.user`, `roles/logging.logWriter`, `roles/eventarc.eventReceiver`, `roles/run.invoker` (na własnym Cloud Run service) | runtime konsumenta — zapis do Firestore + odbiór eventów z Eventarc |
 | `market-rss-sentiment-sentiment` (account_id obcięty do 30 znaków, patrz `iam.tf`) | `roles/datastore.user`, `roles/logging.logWriter`, `roles/eventarc.eventReceiver`, `roles/aiplatform.user`, `roles/run.invoker` (na własnym Cloud Run service) | runtime konsumenta sentymentu — wywołania Vertex AI + zapis do Firestore + odbiór eventów z Eventarc |

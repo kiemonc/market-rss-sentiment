@@ -22,6 +22,7 @@ interface Config {
     location: string;
     model: string;
   };
+  articlesCollection: string;
   sentimentCollection: string;
 }
 
@@ -60,6 +61,7 @@ const config: Config = {
     model: process.env.VERTEX_AI_MODEL || 'gemini-2.5-flash-lite',
   },
 
+  articlesCollection: process.env.FIRESTORE_COLLECTION || 'articles',
   sentimentCollection: process.env.SENTIMENT_COLLECTION || 'sentiment',
 };
 

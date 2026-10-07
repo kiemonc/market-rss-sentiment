@@ -7,16 +7,17 @@ const mockConfig = vi.hoisted(() => ({
 }));
 vi.mock('./config', () => ({ default: mockConfig }));
 
-const { mockSet, mockDoc, mockCollection, mockFirestoreCtor } = vi.hoisted(() => {
+const { mockSet, mockGet, mockDoc, mockCollection, mockFirestoreCtor } = vi.hoisted(() => {
   const mockSet = vi.fn();
-  const mockDoc = vi.fn(() => ({ set: mockSet }));
+  const mockGet = vi.fn();
+  const mockDoc = vi.fn(() => ({ set: mockSet, get: mockGet }));
   const mockCollection = vi.fn(() => ({ doc: mockDoc }));
   // Must be a real `function`, not an arrow function: sentiment-consumer.ts calls
   // `new Firestore(...)`, and arrow functions can't be constructors.
   const mockFirestoreCtor = vi.fn(function () {
     return { collection: mockCollection };
   });
-  return { mockSet, mockDoc, mockCollection, mockFirestoreCtor };
+  return { mockSet, mockGet, mockDoc, mockCollection, mockFirestoreCtor };
 });
 vi.mock('@google-cloud/firestore', () => ({ Firestore: mockFirestoreCtor }));
 
@@ -53,6 +54,8 @@ const sentimentResult = {
 
 beforeEach(() => {
   mockSet.mockReset();
+  mockGet.mockReset();
+  mockGet.mockResolvedValue({ exists: false });
   mockDoc.mockClear();
   mockCollection.mockClear();
   mockAnalyzeArticleSentiment.mockReset();
@@ -128,6 +131,28 @@ describe('handleArticleSentiment', () => {
     await handleArticleSentiment(eventFor(withoutContent));
 
     expect(mockAnalyzeArticleSentiment).toHaveBeenCalledWith({ title: 'Title', content: 'desc' }, mockConfig);
+  });
+
+  it('skips the LLM call and the write when the article was already analyzed', async () => {
+    const logSpy = vi.spyOn(console, 'log').mockImplementation(() => {});
+    mockGet.mockResolvedValueOnce({ exists: true });
+
+    await handleArticleSentiment(eventFor(validArticle));
+
+    expect(mockDoc).toHaveBeenCalledWith('article-1');
+    expect(mockAnalyzeArticleSentiment).not.toHaveBeenCalled();
+    expect(mockSet).not.toHaveBeenCalled();
+    logSpy.mockRestore();
+  });
+
+  it('rethrows when the existence check fails, without calling the LLM, so Pub/Sub retries', async () => {
+    const errorSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
+    mockGet.mockRejectedValueOnce(new Error('firestore unavailable'));
+
+    await expect(handleArticleSentiment(eventFor(validArticle))).rejects.toThrow('firestore unavailable');
+
+    expect(mockAnalyzeArticleSentiment).not.toHaveBeenCalled();
+    errorSpy.mockRestore();
   });
 
   it('rethrows when sentiment analysis fails, so Pub/Sub retries', async () => {

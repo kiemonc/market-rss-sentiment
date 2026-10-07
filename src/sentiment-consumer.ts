@@ -46,6 +46,24 @@ async function handleArticleSentiment(event: CloudEvent<MessagePublishedData>): 
     return;
   }
 
+  // The scraper's own "already seen" check (src/known-articles.ts) is best-effort, and Pub/Sub
+  // delivery is at-least-once, so the same article can still arrive here more than once. The LLM
+  // call is this pipeline's main cost, so never pay for it twice: an existing analysis wins.
+  // To force a re-analysis (e.g. after a prompt change), delete the `sentiment/{id}` docs first.
+  const sentimentRef = getFirestore().collection(config.sentimentCollection).doc(payload.id);
+  let alreadyAnalyzed: boolean;
+  try {
+    alreadyAnalyzed = (await sentimentRef.get()).exists;
+  } catch (err) {
+    // Transient: rethrow so Pub/Sub retries, rather than risk a duplicate LLM call.
+    console.error(`Failed to check existing sentiment for article ${payload.id}:`, (err as Error).message);
+    throw err;
+  }
+  if (alreadyAnalyzed) {
+    console.log(`Sentiment for article ${payload.id} already exists, skipping analysis.`);
+    return;
+  }
+
   let coins;
   try {
     coins = await analyzeArticleSentiment(
@@ -60,10 +78,7 @@ async function handleArticleSentiment(event: CloudEvent<MessagePublishedData>): 
   }
 
   try {
-    await getFirestore()
-      .collection(config.sentimentCollection)
-      .doc(payload.id)
-      .set(
+    await sentimentRef.set(
         {
           articleId: payload.id,
           source: payload.source,

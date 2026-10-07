@@ -112,4 +112,3 @@ z odrzuceniem współbieżnego `/scrape` kodem 429). Pliki testowe leżą obok k
 - Sentiment analysis nad artykułami w Firestore (obecnie tylko archiwizacja)
 - Testy integracyjne na emulatorach (Pub/Sub + Firestore) — świadomie pominięte na razie,
   obecne testy jednostkowe wystarczają na tym etapie
-- Dedup globalny między zimnymi startami scrapera (patrz Ograniczenia w architektura.md)

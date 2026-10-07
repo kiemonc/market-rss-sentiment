@@ -17,6 +17,7 @@ const ENV_KEYS = [
   'VERTEX_AI_LOCATION',
   'VERTEX_AI_MODEL',
   'SENTIMENT_COLLECTION',
+  'FIRESTORE_COLLECTION',
 ] as const;
 
 let originalEnv: Partial<Record<(typeof ENV_KEYS)[number], string>>;
@@ -51,6 +52,7 @@ describe('config', () => {
     expect(config.pubsubEmulatorHost).toBeNull();
     expect(config.vertexAi).toEqual({ location: 'us-central1', model: 'gemini-2.5-flash-lite' });
     expect(config.sentimentCollection).toBe('sentiment');
+    expect(config.articlesCollection).toBe('articles');
   });
 
   it('defaults publisherType to gcp in production when PUBLISHER_TYPE is unset', async () => {
@@ -104,14 +106,16 @@ describe('config', () => {
     expect(config.pubsubEmulatorHost).toBe('localhost:8085');
   });
 
-  it('reads Vertex AI and sentiment collection settings from env', async () => {
+  it('reads Vertex AI and Firestore collection settings from env', async () => {
     process.env.VERTEX_AI_LOCATION = 'europe-west1';
     process.env.VERTEX_AI_MODEL = 'gemini-2.5-pro';
     process.env.SENTIMENT_COLLECTION = 'coin-sentiment';
+    process.env.FIRESTORE_COLLECTION = 'stored-articles';
 
     const { default: config } = await import('./config');
 
     expect(config.vertexAi).toEqual({ location: 'europe-west1', model: 'gemini-2.5-pro' });
     expect(config.sentimentCollection).toBe('coin-sentiment');
+    expect(config.articlesCollection).toBe('stored-articles');
   });
 });

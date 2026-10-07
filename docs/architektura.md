@@ -6,6 +6,7 @@
 RSS Feeds ──► Scraper (Cloud Function "app", HTTP)
                  │
                  ├─ dedup po MD5(title:link) [w pamięci procesu]
+                 ├─ pominięcie artykułów już zapisanych w Firestore (articles/{id})
                  ├─ pobranie pełnej treści artykułu (HTML → tekst)
                  └─ publikacja do Pub/Sub
                         │
@@ -39,13 +40,14 @@ kontynuacji pracy w tle po wysłaniu odpowiedzi, więc cały scrape musi się zm
 |---|---|
 | `src/index.ts` | Express app = funkcja HTTP `app` (`/health`, `/scrape`, `/scrape-status`); rejestruje się w functions-framework przez `http('app', app)`; importuje `./consumer` dla efektu ubocznego (patrz niżej) |
 | `src/scraper.ts` | Pobiera RSS-y (`feedparser`), dedup po `MD5(title:link)` w `Set` trzymanym w pamięci procesu (dedup **per-instancja**, nie globalny — patrz Ograniczenia) |
+| `src/known-articles.ts` | `filterUnseenArticles()` — przed pobraniem treści odrzuca artykuły, które poprzedni przebieg już zapisał w `articles` (`getAll` po ID, porcjami po 100); tylko dla publishera `gcp`; przy błędzie odczytu przepuszcza wszystko (fail-open) |
 | `src/content-resolver.ts` | Dla każdego artykułu pobiera pełną treść HTML i wyciąga tekst — najpierw przez dedykowany parser danego źródła (`site-parsers.ts`), z fallbackiem do kilku generycznych selektorów-kandydatów gdy źródło go nie ma lub selektor przestał pasować — z prostym cache'em w pamięci i rate-limitem 500ms między requestami |
 | `src/site-parsers.ts` | Selektory CSS dla ciała artykułu per-źródło RSS (`cointelegraph`, `decrypt`, `bitcoinmagazine`, `cryptoslate`, `newsbtc`), wyznaczone ręcznie z realnych stron; generyczne wielo-selektorowe zgadywanie w `content-resolver.ts` często łapało nav/related-articles/newsletter, stąd dedykowane parsery per motyw/framework strony |
 | `src/pubsub.ts` | Definicje typów: `Article` → `ArticleWithContent` → `ArticlePayload` (dokładny kształt wiadomości publikowanej do Pub/Sub) |
 | `src/publishers/` | Abstrakcja `Publisher` (`initialize`, `publish`, `close?`) z dwiema implementacjami: `GoogleCloudPublisher` (Pub/Sub, produkcja) i `FilePublisher` (JSONL per-feed, lokalny dev) — wybór przez `PUBLISHER_TYPE` |
 | `src/consumer.ts` | Funkcja `consumeArticle` (Eventarc/Pub/Sub trigger) — dekoduje wiadomość, zapisuje do Firestore |
 | `src/sentiment-analyzer.ts` | `analyzeArticleSentiment()` — wywołuje Vertex AI (Gemini, `@google/genai`, `responseSchema` wymuszający JSON) i zamienia odpowiedź na `SentimentAnalysis` (mapa ticker → `{vector, weight, sentimentDiff}`) |
-| `src/sentiment-consumer.ts` | Funkcja `analyzeArticleSentiment` (Eventarc/Pub/Sub trigger, osobna subskrypcja tego samego topicu co `consumeArticle`) — dekoduje wiadomość, woła `sentiment-analyzer.ts`, zapisuje wynik do Firestore |
+| `src/sentiment-consumer.ts` | Funkcja `analyzeArticleSentiment` (Eventarc/Pub/Sub trigger, osobna subskrypcja tego samego topicu co `consumeArticle`) — dekoduje wiadomość, pomija artykuły z istniejącym `sentiment/{id}` (bez wywołania LLM), woła `sentiment-analyzer.ts`, zapisuje wynik do Firestore |
 | `src/sentiment.ts` | Typy `CoinSentiment` / `SentimentAnalysis` |
 | `src/config.ts` | Czyta wszystkie zmienne środowiskowe w jednym miejscu |
 
@@ -125,10 +127,14 @@ odpowiedzi — retry może akurat zwrócić poprawny wynik) albo błąd zapisu d
 
 ## Ograniczenia obecnego stanu
 
-- **Dedup jest per-instancja procesu**, nie globalny — `seenArticleIds` w `scraper.ts` żyje
-  w pamięci jednej instancji Cloud Function. Przy `min_instance_count = 0` (scale-to-zero)
-  każde nowe zimne uruchomienie zaczyna z pustym zbiorem, więc realny dedup na dłuższą metę
-  opiera się głównie na tym, że ten sam RSS feed zwykle nie publikuje ponownie starych wpisów —
-  nie na tym mechanizmie. Firestore z kolei dedupuje poprawnie i trwale, bo doc ID = `id`.
+- **Dedup w `scraper.ts` jest per-instancja procesu** — `seenArticleIds` żyje w pamięci jednej
+  instancji Cloud Function, a przy `min_instance_count = 0` każdy przebieg crona startuje na zimno
+  z pustym zbiorem. Feedy RSS trzymają kilkadziesiąt ostatnich wpisów, więc bez dodatkowej
+  ochrony ten sam artykuł wracał w wielu kolejnych przebiegach: w logach z 1–14.09.2026 było
+  2358 analiz LLM dla 197 unikalnych artykułów (~12× każdy) — główne źródło kosztów Vertex AI.
+  Trwały dedup zapewniają dwie warstwy oparte o Firestore: scraper pomija ID już obecne w
+  `articles` (`src/known-articles.ts`, best-effort, fail-open), a konsument sentymentu nie woła
+  LLM, jeśli `sentiment/{id}` już istnieje (twarda gwarancja, chroni też przed redelivery
+  Pub/Sub). Ponowną analizę wymusza się usunięciem dokumentów `sentiment/{id}`.
 - `FilePublisher` (tryb `file`) nie jest używany w żadnym wdrożeniu na GCP — istnieje tylko
   do lokalnego dev/demo.
