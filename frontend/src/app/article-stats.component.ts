@@ -8,6 +8,7 @@ import { Chart, type ChartConfiguration, registerables } from 'chart.js';
 import { debounceTime, distinctUntilChanged } from 'rxjs';
 import { bucketDailyCounts, colorForSource, DailySeries } from './article-stats.util';
 import { ArticleService } from './article.service';
+import { TranslatePipe } from './i18n/i18n.service';
 
 Chart.register(...registerables);
 
@@ -16,7 +17,14 @@ const GRIDLINE_COLOR = '#e1e0d9';
 
 @Component({
   selector: 'app-article-stats',
-  imports: [ReactiveFormsModule, MatFormFieldModule, MatInputModule, MatSelectModule, MatProgressSpinnerModule],
+  imports: [
+    ReactiveFormsModule,
+    MatFormFieldModule,
+    MatInputModule,
+    MatSelectModule,
+    MatProgressSpinnerModule,
+    TranslatePipe,
+  ],
   templateUrl: './article-stats.component.html',
   styleUrl: './article-stats.component.css',
 })

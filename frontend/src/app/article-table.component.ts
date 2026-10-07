@@ -13,6 +13,7 @@ import type { OrderByDirection, QueryDocumentSnapshot } from 'firebase/firestore
 import { debounceTime, distinctUntilChanged, merge } from 'rxjs';
 import { Article } from './article.model';
 import { ArticleFilters, ArticleService, TITLE_SEARCH_LIMIT } from './article.service';
+import { I18nService, TranslatePipe } from './i18n/i18n.service';
 
 const DEFAULT_SORT_FIELD: keyof Article = 'fetchedAt';
 const DEFAULT_SORT_DIRECTION: OrderByDirection = 'desc';
@@ -34,6 +35,7 @@ const SORT_FIELDS: Record<string, keyof Article> = {
   selector: 'app-article-table',
   imports: [
     DatePipe,
+    TranslatePipe,
     ReactiveFormsModule,
     MatFormFieldModule,
     MatInputModule,
@@ -48,6 +50,7 @@ const SORT_FIELDS: Record<string, keyof Article> = {
 })
 export class ArticleTableComponent implements AfterViewInit {
   private readonly articleService = inject(ArticleService);
+  readonly i18n = inject(I18nService);
   private readonly router = inject(Router);
   private readonly fb = inject(FormBuilder);
 

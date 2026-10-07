@@ -32,10 +32,6 @@
   flex: 0 1 180px;
 }
 
-.filter-prices {
-  align-self: center;
-}
-
 .coin-chip {
   display: inline-flex;
   align-items: center;
@@ -64,6 +60,7 @@
 .chart-canvas-wrap {
   position: relative;
   height: 460px;
+  touch-action: pan-y; /* horizontal gestures belong to the chart's pan/pinch */
 }
 
 .method {
@@ -77,9 +74,163 @@
   font-weight: 600;
 }
 
-.method .formula {
-  font-family: ui-monospace, monospace;
-  padding: 0.25rem 0.5rem;
+/* Formula laid out as a real stacked fraction (numerator over a rule over denominator). */
+.formula {
+  display: flex;
+  align-items: center;
+  gap: 0.5em;
+  margin: 0.75rem 0 0.25rem 1rem;
+  font-family: 'Cambria Math', 'STIX Two Math', 'Latin Modern Math', Georgia, 'Times New Roman', serif;
+  font-size: 1.1rem;
+  overflow-x: auto;
+}
+
+.f-lhs {
+  white-space: nowrap;
+}
+
+.f-frac {
+  display: inline-flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+}
+
+.f-num,
+.f-den {
+  padding: 0.15em 0.4em;
+  white-space: nowrap;
+}
+
+.f-num {
+  border-bottom: 1px solid currentColor;
+}
+
+.formula sup,
+.formula sub {
+  font-size: 0.7em;
+  line-height: 0;
+}
+
+.formula sup sub {
+  font-size: 0.85em;
+}
+
+.formula-note {
+  margin: 0 0 0.75rem 1rem;
+  color: #666;
+  font-size: 0.85rem;
+}
+
+/* TradingView-style chart toolbar. */
+.chart-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.25rem 0.5rem;
+  padding: 0.25rem 0;
+  border-bottom: 1px solid #e5e5e5;
+}
+
+.tb-group {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 2px;
+}
+
+.tb-group.dimmed {
+  opacity: 0.55;
+}
+
+.tb-sep {
+  width: 1px;
+  align-self: stretch;
+  background: #e0e0e0;
+  margin: 0.15rem 0.25rem;
+}
+
+.tb-spacer {
+  flex: 1;
+}
+
+.tb-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  min-height: 28px;
+  padding: 0 0.55rem;
+  border: none;
+  border-radius: 4px;
+  background: transparent;
+  color: #131722;
+  font: inherit;
+  font-size: 0.85rem;
+  cursor: pointer;
+}
+
+.tb-btn:hover:not(:disabled) {
+  background: #f0f3fa;
+}
+
+.tb-btn:focus-visible {
+  outline: 2px solid #2a78d6;
+  outline-offset: 1px;
+}
+
+.tb-btn.active {
+  background: #e3effd;
+  color: #2a78d6;
+  font-weight: 600;
+}
+
+.tb-btn:disabled {
+  color: #b2b5be;
+  cursor: not-allowed;
+}
+
+.tb-toggle:not(.active) {
+  color: #787b86;
+  text-decoration: line-through;
+}
+
+.tb-sub {
+  font-size: 0.75em;
+  font-weight: 400;
+  color: #787b86;
+}
+
+.tb-reset {
+  border: 1px solid #d1d4dc;
+}
+
+.tb-hint {
+  color: #787b86;
+  font-size: 0.75rem;
+}
+
+.tb-icon {
+  display: inline-block;
+  width: 12px;
+  height: 12px;
+  flex: none;
+}
+
+.tb-icon-candles {
+  background:
+    linear-gradient(#1baf7a, #1baf7a) 2px 3px / 3px 7px no-repeat,
+    linear-gradient(#1baf7a, #1baf7a) 3px 0 / 1px 12px no-repeat,
+    linear-gradient(#e34948, #e34948) 7px 2px / 3px 6px no-repeat,
+    linear-gradient(#e34948, #e34948) 8px 0 / 1px 10px no-repeat;
+}
+
+.tb-icon-line {
+  border-bottom: 2px solid #2a78d6;
+  height: 7px;
+  transform: skewY(-20deg);
+}
+
+.tb-icon-dots {
+  background: radial-gradient(circle, #2a78d6 2.5px, transparent 3px) 0 0 / 6px 6px;
 }
 
 .spinner-overlay {

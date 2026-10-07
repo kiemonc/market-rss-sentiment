@@ -1,11 +1,24 @@
 <div class="layout">
   <header class="header">
-    <h1><a routerLink="/">Market articles</a></h1>
+    <h1><a routerLink="/">{{ 'app.title' | t }}</a></h1>
     <nav class="nav">
-      <a routerLink="/" routerLinkActive="active" [routerLinkActiveOptions]="{ exact: true }">Articles</a>
-      <a routerLink="/stats" routerLinkActive="active">Stats</a>
-      <a routerLink="/sentiment" routerLinkActive="active">Sentiment</a>
+      <a routerLink="/" routerLinkActive="active" [routerLinkActiveOptions]="{ exact: true }">{{ 'nav.articles' | t }}</a>
+      <a routerLink="/stats" routerLinkActive="active">{{ 'nav.stats' | t }}</a>
+      <a routerLink="/sentiment" routerLinkActive="active">{{ 'nav.sentiment' | t }}</a>
     </nav>
+    <div class="lang-switch" role="group" [attr.aria-label]="'lang.label' | t">
+      @for (language of languages; track language.code) {
+        <button
+          type="button"
+          [class.active]="i18n.lang() === language.code"
+          [attr.aria-pressed]="i18n.lang() === language.code"
+          [title]="language.label"
+          (click)="i18n.setLang(language.code)"
+        >
+          {{ language.code.toUpperCase() }}
+        </button>
+      }
+    </div>
   </header>
   <main class="content">
     <router-outlet />

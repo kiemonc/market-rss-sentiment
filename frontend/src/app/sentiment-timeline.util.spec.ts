@@ -1,5 +1,5 @@
 import { SentimentAnalysis } from './article.model';
-import { candleIntervalFor, indexCandles } from './price.service';
+import { CANDLE_INTERVALS, candleIntervalFor, exceedsCandleLimit, indexCandles } from './price.service';
 import {
   coinsByCoverage,
   computeSentimentIndex,
@@ -133,6 +133,13 @@ describe('candleIntervalFor / indexCandles', () => {
   it('picks daily candles for a month-long range', () => {
     expect(candleIntervalFor(0, 30 * 24 * HOUR_MS).name).toBe('1d');
     expect(candleIntervalFor(0, 3 * 24 * HOUR_MS).name).toBe('1h');
+    expect(candleIntervalFor(0, 24 * HOUR_MS).name).toBe('15m');
+  });
+
+  it('flags intervals that would need more candles than are fetched', () => {
+    const fifteenMinutes = CANDLE_INTERVALS.find((i) => i.name === '15m')!;
+    expect(exceedsCandleLimit(fifteenMinutes, 0, 30 * 24 * HOUR_MS)).toBeFalse(); // 2880 candles
+    expect(exceedsCandleLimit(fifteenMinutes, 0, 365 * 24 * HOUR_MS)).toBeTrue();
   });
 
   it('rescales candles to % change from the first open', () => {

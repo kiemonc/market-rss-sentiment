@@ -1,6 +1,7 @@
 import { provideRouter } from '@angular/router';
 import { TestBed } from '@angular/core/testing';
 import { AppComponent } from './app.component';
+import { I18nService } from './i18n/i18n.service';
 
 describe('AppComponent', () => {
   beforeEach(async () => {
@@ -8,6 +9,7 @@ describe('AppComponent', () => {
       imports: [AppComponent],
       providers: [provideRouter([])],
     }).compileComponents();
+    TestBed.inject(I18nService).setLang('en');
   });
 
   it('should create the app', () => {
@@ -21,5 +23,13 @@ describe('AppComponent', () => {
     fixture.detectChanges();
     const compiled = fixture.nativeElement as HTMLElement;
     expect(compiled.querySelector('h1')?.textContent).toContain('Market articles');
+  });
+
+  it('switches the UI language', () => {
+    const fixture = TestBed.createComponent(AppComponent);
+    TestBed.inject(I18nService).setLang('pl');
+    fixture.detectChanges();
+    const compiled = fixture.nativeElement as HTMLElement;
+    expect(compiled.querySelector('h1')?.textContent).toContain('Artykuły rynkowe');
   });
 });

@@ -5,10 +5,11 @@ import { map, switchMap } from 'rxjs';
 import { ArticlePreviewComponent } from './article-preview.component';
 import { ArticleSentimentComponent } from './article-sentiment.component';
 import { ArticleService } from './article.service';
+import { TranslatePipe } from './i18n/i18n.service';
 
 @Component({
   selector: 'app-article-detail',
-  imports: [ArticlePreviewComponent, ArticleSentimentComponent, RouterLink],
+  imports: [ArticlePreviewComponent, ArticleSentimentComponent, RouterLink, TranslatePipe],
   templateUrl: './article-detail.component.html',
   styleUrl: './article-detail.component.css',
 })

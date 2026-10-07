@@ -1,7 +1,7 @@
 <div class="timeline-container">
   <form class="filters" [formGroup]="filterForm">
     <mat-form-field appearance="outline" class="filter-coins">
-      <mat-label>Cryptocurrencies</mat-label>
+      <mat-label>{{ 'timeline.coins' | t }}</mat-label>
       <mat-select formControlName="coins" multiple>
         <mat-select-trigger>
           @for (coin of filterForm.value.coins; track coin) {
@@ -14,64 +14,164 @@
           </mat-option>
         }
       </mat-select>
-      <mat-hint>Up to {{ maxCoins }}; (n) = articles in range</mat-hint>
+      <mat-hint>{{ 'timeline.coinsHint' | t: { n: maxCoins } }}</mat-hint>
     </mat-form-field>
 
     <mat-form-field appearance="outline" class="filter-date">
-      <mat-label>From</mat-label>
+      <mat-label>{{ 'common.from' | t }}</mat-label>
       <input matInput type="date" formControlName="from" />
     </mat-form-field>
 
     <mat-form-field appearance="outline" class="filter-date">
-      <mat-label>To</mat-label>
+      <mat-label>{{ 'common.to' | t }}</mat-label>
       <input matInput type="date" formControlName="to" />
     </mat-form-field>
 
     <mat-form-field appearance="outline" class="filter-half-life">
-      <mat-label>Memory (half-life)</mat-label>
+      <mat-label>{{ 'timeline.halfLife' | t }}</mat-label>
       <mat-select formControlName="halfLifeHours">
-        @for (option of halfLifeOptions; track option.hours) {
-          <mat-option [value]="option.hours">{{ option.label }}</mat-option>
+        @for (hours of halfLifeOptions; track hours) {
+          <mat-option [value]="hours">{{ halfLifeKey(hours) | t }}</mat-option>
         }
       </mat-select>
     </mat-form-field>
-
-    <mat-slide-toggle formControlName="showPrices" class="filter-prices">Show price candles</mat-slide-toggle>
   </form>
 
+  <div class="chart-toolbar" role="toolbar">
+    <div class="tb-group" role="group" [attr.aria-label]="'timeline.toolbar.range' | t">
+      @for (preset of rangePresets; track preset.days) {
+        <button
+          type="button"
+          class="tb-btn"
+          [class.active]="isRangeActive(preset.days)"
+          [attr.aria-pressed]="isRangeActive(preset.days)"
+          [title]="'timeline.toolbar.rangeTitle' | t: { label: preset.label }"
+          (click)="setRange(preset.days)"
+        >
+          {{ preset.label }}
+        </button>
+      }
+    </div>
+
+    <span class="tb-sep" aria-hidden="true"></span>
+
+    <div
+      class="tb-group"
+      role="group"
+      [class.dimmed]="!filterForm.value.showPrices"
+      [attr.aria-label]="'timeline.toolbar.interval' | t"
+    >
+      <button
+        type="button"
+        class="tb-btn"
+        [class.active]="filterForm.value.candleInterval === 'auto'"
+        [attr.aria-pressed]="filterForm.value.candleInterval === 'auto'"
+        [title]="'timeline.toolbar.autoTitle' | t: { interval: effectiveInterval?.label ?? '' }"
+        (click)="setCandleInterval('auto')"
+      >
+        {{ 'timeline.toolbar.auto' | t }}
+        @if (filterForm.value.candleInterval === 'auto' && effectiveInterval) {
+          <span class="tb-sub">{{ effectiveInterval.label }}</span>
+        }
+      </button>
+      @for (interval of candleIntervals; track interval.name) {
+        <button
+          type="button"
+          class="tb-btn"
+          [class.active]="effectiveInterval?.name === interval.name && filterForm.value.candleInterval !== 'auto'"
+          [attr.aria-pressed]="effectiveInterval?.name === interval.name && filterForm.value.candleInterval !== 'auto'"
+          [disabled]="isIntervalDisabled(interval)"
+          [title]="isIntervalDisabled(interval) ? ('timeline.toolbar.intervalTooFine' | t) : interval.label"
+          (click)="setCandleInterval(interval.name)"
+        >
+          {{ interval.label }}
+        </button>
+      }
+    </div>
+
+    <span class="tb-sep" aria-hidden="true"></span>
+
+    <div class="tb-group" role="group" [attr.aria-label]="'timeline.toolbar.layers' | t">
+      <button
+        type="button"
+        class="tb-btn tb-toggle"
+        [class.active]="filterForm.value.showPrices"
+        [attr.aria-pressed]="filterForm.value.showPrices"
+        (click)="toggle('showPrices')"
+      >
+        <span class="tb-icon tb-icon-candles" aria-hidden="true"></span>{{ 'timeline.toolbar.candles' | t }}
+      </button>
+      <button
+        type="button"
+        class="tb-btn tb-toggle"
+        [class.active]="filterForm.value.showSentiment"
+        [attr.aria-pressed]="filterForm.value.showSentiment"
+        (click)="toggle('showSentiment')"
+      >
+        <span class="tb-icon tb-icon-line" aria-hidden="true"></span>{{ 'timeline.toolbar.sentiment' | t }}
+      </button>
+      <button
+        type="button"
+        class="tb-btn tb-toggle"
+        [class.active]="filterForm.value.showArticles"
+        [attr.aria-pressed]="filterForm.value.showArticles"
+        (click)="toggle('showArticles')"
+      >
+        <span class="tb-icon tb-icon-dots" aria-hidden="true"></span>{{ 'timeline.toolbar.articles' | t }}
+      </button>
+    </div>
+
+    <span class="tb-spacer"></span>
+
+    @if (zoomed) {
+      <button type="button" class="tb-btn tb-reset" (click)="resetZoom()">{{ 'timeline.toolbar.resetZoom' | t }}</button>
+    }
+    <span class="tb-hint">{{ 'timeline.toolbar.hint' | t }}</span>
+  </div>
+
   @if (!filterForm.value.coins?.length) {
-    <p class="note">Select at least one cryptocurrency to plot.</p>
+    <p class="note">{{ 'timeline.selectCoin' | t }}</p>
   }
 
   <section class="chart-panel">
-    <div class="chart-canvas-wrap">
+    <div class="chart-canvas-wrap" (dblclick)="resetZoom()">
       <canvas #canvas></canvas>
     </div>
-    @if (coinsWithoutPrices.length) {
-      <p class="note">No Binance USDT price data for: {{ coinsWithoutPrices.join(', ') }}.</p>
+    @if (coinsWithoutPrices.length && filterForm.value.showPrices) {
+      <p class="note">{{ 'timeline.noPrices' | t: { coins: coinsWithoutPrices.join(', ') } }}</p>
     }
   </section>
 
   <details class="method">
-    <summary>How the sentiment index is calculated</summary>
-    <p>
-      Every analyzed article gives each coin it mentions a signed impact <code>s</code> in [−1, 1] and a relevance
-      <code>w</code> in [0, 1]. The index at time <code>t</code> is a time-decayed, relevance-weighted average of
-      the articles published up to <code>t</code>:
-    </p>
-    <p class="formula">S(t) = Σ w·s·2<sup>−(t − tᵢ)/H</sup> / (k + Σ w·2<sup>−(t − tᵢ)/H</sup>)</p>
+    <summary>{{ 'timeline.method.summary' | t }}</summary>
+    <p>{{ 'timeline.method.intro' | t }}</p>
+
+    <div
+      class="formula"
+      role="math"
+      aria-label="S(t) = sum of w_i s_i 2^(-(t - t_i)/H) divided by (k + sum of w_i 2^(-(t - t_i)/H))"
+    >
+      <span class="f-lhs"><i>S</i>(<i>t</i>) =</span>
+      <span class="f-frac">
+        <span class="f-num"
+          >∑<sub><i>i</i></sub> <i>w</i><sub><i>i</i></sub> · <i>s</i><sub><i>i</i></sub> ·
+          2<sup>−(<i>t</i> − <i>t</i><sub><i>i</i></sub>) / <i>H</i></sup></span
+        >
+        <span class="f-den"
+          ><i>k</i> + ∑<sub><i>i</i></sub> <i>w</i><sub><i>i</i></sub> · 2<sup
+            >−(<i>t</i> − <i>t</i><sub><i>i</i></sub>) / <i>H</i></sup
+          ></span
+        >
+      </span>
+    </div>
+    <p class="formula-note">{{ 'timeline.method.sumNote' | t }}</p>
+
     <ul>
-      <li><strong>H</strong> — the “memory” half-life: an article's influence halves every H.</li>
-      <li>
-        <strong>k = 0.5</strong> — a neutral prior worth half a fully relevant article. A single marginal article
-        can't swing the index to ±1, and with no fresh news the index drifts back toward 0.
-      </li>
-      <li>Only articles published <em>before</em> each point count, so the line never looks into the future.</li>
-      <li>
-        Each dot is one article, placed where it moved the line; bigger dots are more relevant to the coin. Hover for its
-        title and scores, click to open it.
-      </li>
-      <li>Price candles come from Binance (<code>&lt;coin&gt;USDT</code>); with several coins they're shown as % change since the start of the range.</li>
+      <li><strong>H</strong> — {{ 'timeline.method.h' | t }}</li>
+      <li><strong>k = 0.5</strong> — {{ 'timeline.method.k' | t }}</li>
+      <li>{{ 'timeline.method.causal' | t }}</li>
+      <li>{{ 'timeline.method.dots' | t }}</li>
+      <li>{{ 'timeline.method.prices' | t }}</li>
     </ul>
   </details>
 

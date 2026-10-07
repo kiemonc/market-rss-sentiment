@@ -1,14 +1,14 @@
 <div class="table-container">
   <form class="filters" [formGroup]="filterForm">
     <mat-form-field appearance="outline" class="filter-title">
-      <mat-label>Title contains</mat-label>
-      <input matInput formControlName="title" placeholder="Search title…" />
+      <mat-label>{{ 'table.titleContains' | t }}</mat-label>
+      <input matInput formControlName="title" [placeholder]="'table.searchTitle' | t" />
     </mat-form-field>
 
     <mat-form-field appearance="outline" class="filter-source">
-      <mat-label>Source</mat-label>
+      <mat-label>{{ 'table.source' | t }}</mat-label>
       <mat-select formControlName="source">
-        <mat-option [value]="null">All sources</mat-option>
+        <mat-option [value]="null">{{ 'table.allSources' | t }}</mat-option>
         @for (source of sources; track source) {
           <mat-option [value]="source">{{ source }}</mat-option>
         }
@@ -16,40 +16,40 @@
     </mat-form-field>
 
     <mat-form-field appearance="outline" class="filter-date">
-      <mat-label>Published from</mat-label>
+      <mat-label>{{ 'table.publishedFrom' | t }}</mat-label>
       <input matInput type="date" formControlName="publishedFrom" />
     </mat-form-field>
 
     <mat-form-field appearance="outline" class="filter-date">
-      <mat-label>Published to</mat-label>
+      <mat-label>{{ 'table.publishedTo' | t }}</mat-label>
       <input matInput type="date" formControlName="publishedTo" />
     </mat-form-field>
 
     @if (titleSearchCapped) {
-      <span class="filter-hint">Showing the first {{ titleSearchLimit }} matches — refine the search to see more.</span>
+      <span class="filter-hint">{{ 'table.capped' | t: { n: titleSearchLimit } }}</span>
     }
   </form>
 
   <div class="table-scroll">
     <table mat-table [dataSource]="dataSource" matSort class="article-table">
       <ng-container matColumnDef="title">
-        <th mat-header-cell *matHeaderCellDef mat-sort-header>Title</th>
+        <th mat-header-cell *matHeaderCellDef mat-sort-header>{{ 'table.title' | t }}</th>
         <td mat-cell *matCellDef="let article">{{ article.title }}</td>
       </ng-container>
 
       <ng-container matColumnDef="source">
-        <th mat-header-cell *matHeaderCellDef mat-sort-header>Source</th>
+        <th mat-header-cell *matHeaderCellDef mat-sort-header>{{ 'table.source' | t }}</th>
         <td mat-cell *matCellDef="let article" class="source-cell">{{ article.source }}</td>
       </ng-container>
 
       <ng-container matColumnDef="publicationDate">
-        <th mat-header-cell *matHeaderCellDef mat-sort-header>Published</th>
-        <td mat-cell *matCellDef="let article">{{ article.publishedAt | date: 'yyyy-MM-dd HH:mm' }}</td>
+        <th mat-header-cell *matHeaderCellDef mat-sort-header>{{ 'table.published' | t }}</th>
+        <td mat-cell *matCellDef="let article">{{ article.publishedAt | date: 'yyyy-MM-dd HH:mm' : undefined : i18n.locale() }}</td>
       </ng-container>
 
       <ng-container matColumnDef="pubDate">
-        <th mat-header-cell *matHeaderCellDef mat-sort-header>Fetched</th>
-        <td mat-cell *matCellDef="let article">{{ article.fetchedAt | date: 'yyyy-MM-dd HH:mm' }}</td>
+        <th mat-header-cell *matHeaderCellDef mat-sort-header>{{ 'table.fetched' | t }}</th>
+        <td mat-cell *matCellDef="let article">{{ article.fetchedAt | date: 'yyyy-MM-dd HH:mm' : undefined : i18n.locale() }}</td>
       </ng-container>
 
       <tr mat-header-row *matHeaderRowDef="displayedColumns"></tr>
@@ -62,7 +62,7 @@
 
       <tr class="mat-row" *matNoDataRow>
         <td class="mat-cell no-data" [attr.colspan]="displayedColumns.length">
-          {{ loading ? '' : 'No articles yet.' }}
+          {{ loading ? '' : ('table.empty' | t) }}
         </td>
       </tr>
     </table>

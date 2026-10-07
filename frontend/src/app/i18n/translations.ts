@@ -1,0 +1,206 @@
+// UI strings only. Article content (titles, descriptions, bodies, source names) is scraped data and
+// is deliberately shown as-is, never translated.
+//
+// `{name}` placeholders are filled in by I18nService.t()'s params.
+
+const en = {
+  'app.title': 'Market articles',
+  'nav.articles': 'Articles',
+  'nav.stats': 'Stats',
+  'nav.sentiment': 'Sentiment',
+  'lang.label': 'Language',
+
+  'table.titleContains': 'Title contains',
+  'table.searchTitle': 'Search title…',
+  'table.source': 'Source',
+  'table.allSources': 'All sources',
+  'table.publishedFrom': 'Published from',
+  'table.publishedTo': 'Published to',
+  'table.capped': 'Showing the first {n} matches — refine the search to see more.',
+  'table.title': 'Title',
+  'table.published': 'Published',
+  'table.fetched': 'Fetched',
+  'table.empty': 'No articles yet.',
+
+  'paginator.itemsPerPage': 'Items per page:',
+  'paginator.next': 'Next page',
+  'paginator.previous': 'Previous page',
+  'paginator.first': 'First page',
+  'paginator.last': 'Last page',
+  'paginator.range': '{start} – {end} of {length}',
+
+  'detail.back': '← Back to articles',
+  'preview.openOriginal': 'Open original article',
+  'preview.placeholder': 'Select an article to see its preview.',
+
+  'articleSentiment.heading': 'LLM sentiment analysis',
+  'articleSentiment.pending': 'Analysis pending — this runs shortly after the article is scraped.',
+  'articleSentiment.noCoins': 'No cryptocurrencies were identified in this article.',
+  'articleSentiment.analyzedAt': 'Analyzed {date}',
+  'articleSentiment.relevanceTitle': 'Relevance to this article: {n}%',
+  'articleSentiment.relevance': 'Relevance {n}%',
+  'articleSentiment.impactTitle': 'Sentiment impact: {value}',
+  'articleSentiment.breakdown': 'Sentiment breakdown',
+  'sentiment.bullish': 'Bullish',
+  'sentiment.bearish': 'Bearish',
+  'sentiment.neutral': 'Neutral',
+
+  'stats.sources': 'Sources',
+  'common.from': 'From',
+  'common.to': 'To',
+  'stats.selectSource': 'Select at least one source to update the charts.',
+  'stats.byPublished': 'Articles by publication date',
+  'stats.byFetched': 'Articles by fetch date',
+
+  'timeline.coins': 'Cryptocurrencies',
+  'timeline.coinsHint': 'Up to {n}; (n) = articles in range',
+  'timeline.halfLife': 'Memory (half-life)',
+  'timeline.halfLife.6': '6 hours',
+  'timeline.halfLife.12': '12 hours',
+  'timeline.halfLife.24': '1 day',
+  'timeline.halfLife.72': '3 days',
+  'timeline.halfLife.168': '1 week',
+  'timeline.selectCoin': 'Select at least one cryptocurrency to plot.',
+  'timeline.noPrices': 'No Binance USDT price data for: {coins}.',
+  'timeline.toolbar.range': 'Range',
+  'timeline.toolbar.rangeTitle': 'Last {label}',
+  'timeline.toolbar.interval': 'Candle interval',
+  'timeline.toolbar.auto': 'Auto',
+  'timeline.toolbar.autoTitle': 'Pick the interval from the range ({interval})',
+  'timeline.toolbar.intervalTooFine': 'Too many candles for this range — narrow the range first',
+  'timeline.toolbar.layers': 'Layers',
+  'timeline.toolbar.candles': 'Candles',
+  'timeline.toolbar.sentiment': 'Sentiment',
+  'timeline.toolbar.articles': 'Articles',
+  'timeline.toolbar.resetZoom': 'Reset zoom',
+  'timeline.toolbar.hint': 'Scroll to zoom · drag to pan · double-click to reset',
+  'timeline.axis.sentiment': 'Sentiment index (bearish ← 0 → bullish)',
+  'timeline.axis.priceChange': 'Price change since start (%)',
+  'timeline.axis.price': '{coin} price (USDT)',
+  'timeline.dataset.sentiment': '{coin} sentiment',
+  'timeline.dataset.articles': '{coin} articles',
+  'timeline.dataset.price': '{coin} price',
+  'timeline.tooltip.sentiment': '{label}: {value} (≈{evidence} articles of evidence)',
+  'timeline.tooltip.article': '{coin} · {title} (impact {impact}, relevance {relevance}%)',
+  'timeline.tooltip.untitled': 'Untitled article',
+  'timeline.tooltip.openHint': 'Click to open the article (Ctrl/⌘-click: new tab)',
+  'timeline.method.summary': 'How the sentiment index is calculated',
+  'timeline.method.intro':
+    'Every analyzed article gives each coin it mentions a signed impact s in [−1, 1] and a relevance w in [0, 1]. The index at time t is a time-decayed, relevance-weighted average of the articles published up to t:',
+  'timeline.method.sumNote': 'sums run over articles i published at or before t',
+  'timeline.method.h': 'the “memory” half-life: an article’s influence halves every H.',
+  'timeline.method.k':
+    'a neutral prior worth half a fully relevant article. A single marginal article can’t swing the index to ±1, and with no fresh news the index drifts back toward 0.',
+  'timeline.method.causal': 'Only articles published before each point count, so the line never looks into the future.',
+  'timeline.method.dots':
+    'Each dot is one article, placed where it moved the line; bigger dots are more relevant to the coin. Hover for its title and scores, click to open it.',
+  'timeline.method.prices':
+    'Price candles come from Binance (<coin>USDT); with several coins they’re shown as % change since the start of the range.',
+};
+
+export type TranslationKey = keyof typeof en;
+
+const pl: Record<TranslationKey, string> = {
+  'app.title': 'Artykuły rynkowe',
+  'nav.articles': 'Artykuły',
+  'nav.stats': 'Statystyki',
+  'nav.sentiment': 'Sentyment',
+  'lang.label': 'Język',
+
+  'table.titleContains': 'Tytuł zawiera',
+  'table.searchTitle': 'Szukaj w tytule…',
+  'table.source': 'Źródło',
+  'table.allSources': 'Wszystkie źródła',
+  'table.publishedFrom': 'Opublikowane od',
+  'table.publishedTo': 'Opublikowane do',
+  'table.capped': 'Pokazano pierwsze {n} wyników — zawęź wyszukiwanie, aby zobaczyć więcej.',
+  'table.title': 'Tytuł',
+  'table.published': 'Opublikowano',
+  'table.fetched': 'Pobrano',
+  'table.empty': 'Brak artykułów.',
+
+  'paginator.itemsPerPage': 'Na stronie:',
+  'paginator.next': 'Następna strona',
+  'paginator.previous': 'Poprzednia strona',
+  'paginator.first': 'Pierwsza strona',
+  'paginator.last': 'Ostatnia strona',
+  'paginator.range': '{start} – {end} z {length}',
+
+  'detail.back': '← Wróć do artykułów',
+  'preview.openOriginal': 'Otwórz oryginalny artykuł',
+  'preview.placeholder': 'Wybierz artykuł, aby zobaczyć podgląd.',
+
+  'articleSentiment.heading': 'Analiza sentymentu (LLM)',
+  'articleSentiment.pending': 'Analiza w toku — wykonuje się chwilę po pobraniu artykułu.',
+  'articleSentiment.noCoins': 'W tym artykule nie rozpoznano żadnych kryptowalut.',
+  'articleSentiment.analyzedAt': 'Przeanalizowano {date}',
+  'articleSentiment.relevanceTitle': 'Istotność dla tego artykułu: {n}%',
+  'articleSentiment.relevance': 'Istotność {n}%',
+  'articleSentiment.impactTitle': 'Wpływ na sentyment: {value}',
+  'articleSentiment.breakdown': 'Rozkład sentymentu',
+  'sentiment.bullish': 'Wzrostowy',
+  'sentiment.bearish': 'Spadkowy',
+  'sentiment.neutral': 'Neutralny',
+
+  'stats.sources': 'Źródła',
+  'common.from': 'Od',
+  'common.to': 'Do',
+  'stats.selectSource': 'Wybierz co najmniej jedno źródło, aby odświeżyć wykresy.',
+  'stats.byPublished': 'Artykuły wg daty publikacji',
+  'stats.byFetched': 'Artykuły wg daty pobrania',
+
+  'timeline.coins': 'Kryptowaluty',
+  'timeline.coinsHint': 'Maks. {n}; (n) = liczba artykułów w zakresie',
+  'timeline.halfLife': 'Pamięć (okres półtrwania)',
+  'timeline.halfLife.6': '6 godzin',
+  'timeline.halfLife.12': '12 godzin',
+  'timeline.halfLife.24': '1 dzień',
+  'timeline.halfLife.72': '3 dni',
+  'timeline.halfLife.168': '1 tydzień',
+  'timeline.selectCoin': 'Wybierz co najmniej jedną kryptowalutę.',
+  'timeline.noPrices': 'Brak notowań USDT na Binance dla: {coins}.',
+  'timeline.toolbar.range': 'Zakres',
+  'timeline.toolbar.rangeTitle': 'Ostatnie {label}',
+  'timeline.toolbar.interval': 'Interwał świec',
+  'timeline.toolbar.auto': 'Auto',
+  'timeline.toolbar.autoTitle': 'Interwał dobrany do zakresu ({interval})',
+  'timeline.toolbar.intervalTooFine': 'Za dużo świec dla tego zakresu — najpierw zawęź zakres',
+  'timeline.toolbar.layers': 'Warstwy',
+  'timeline.toolbar.candles': 'Świece',
+  'timeline.toolbar.sentiment': 'Sentyment',
+  'timeline.toolbar.articles': 'Artykuły',
+  'timeline.toolbar.resetZoom': 'Resetuj powiększenie',
+  'timeline.toolbar.hint': 'Kółko: powiększenie · przeciągnij: przesuń · dwuklik: reset',
+  'timeline.axis.sentiment': 'Indeks sentymentu (spadkowy ← 0 → wzrostowy)',
+  'timeline.axis.priceChange': 'Zmiana ceny od początku zakresu (%)',
+  'timeline.axis.price': 'Cena {coin} (USDT)',
+  'timeline.dataset.sentiment': '{coin} sentyment',
+  'timeline.dataset.articles': '{coin} artykuły',
+  'timeline.dataset.price': '{coin} cena',
+  'timeline.tooltip.sentiment': '{label}: {value} (≈{evidence} art. w ocenie)',
+  'timeline.tooltip.article': '{coin} · {title} (wpływ {impact}, istotność {relevance}%)',
+  'timeline.tooltip.untitled': 'Artykuł bez tytułu',
+  'timeline.tooltip.openHint': 'Kliknij, aby otworzyć artykuł (Ctrl/⌘ + klik: nowa karta)',
+  'timeline.method.summary': 'Jak liczony jest indeks sentymentu',
+  'timeline.method.intro':
+    'Każdy przeanalizowany artykuł daje każdej wspomnianej kryptowalucie wpływ s z przedziału [−1, 1] i istotność w z przedziału [0, 1]. Indeks w chwili t to średnia ważona istotnością, wygaszana w czasie, z artykułów opublikowanych do chwili t:',
+  'timeline.method.sumNote': 'sumy po artykułach i opublikowanych nie później niż t',
+  'timeline.method.h': '„pamięć” (okres półtrwania): wpływ artykułu maleje o połowę co H.',
+  'timeline.method.k':
+    'neutralny prior o wadze połowy w pełni istotnego artykułu. Pojedynczy marginalny artykuł nie wybije indeksu do ±1, a bez nowych wiadomości indeks wraca w stronę 0.',
+  'timeline.method.causal':
+    'Liczą się tylko artykuły opublikowane przed danym punktem, więc linia nigdy nie „zagląda w przyszłość”.',
+  'timeline.method.dots':
+    'Każda kropka to jeden artykuł, w miejscu, w którym przesunął linię; większa kropka = bardziej istotny dla danej waluty. Najedź, aby zobaczyć tytuł i oceny, kliknij, aby go otworzyć.',
+  'timeline.method.prices':
+    'Świece cenowe pochodzą z Binance (<waluta>USDT); przy kilku walutach pokazywane są jako % zmiany od początku zakresu.',
+};
+
+export type Lang = 'en' | 'pl';
+
+export const TRANSLATIONS: Record<Lang, Record<TranslationKey, string>> = { en, pl };
+
+export const LANGUAGES: { code: Lang; label: string; locale: string }[] = [
+  { code: 'en', label: 'English', locale: 'en-US' },
+  { code: 'pl', label: 'Polski', locale: 'pl-PL' },
+];

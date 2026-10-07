@@ -48,3 +48,31 @@
   flex: 1;
   min-height: 0;
 }
+
+.lang-switch {
+  display: flex;
+  margin-left: auto;
+  align-self: center;
+  border: 1px solid #d0d0d0;
+  border-radius: 4px;
+  overflow: hidden;
+}
+
+.lang-switch button {
+  border: none;
+  background: transparent;
+  color: #666;
+  font: inherit;
+  font-size: 0.8rem;
+  padding: 0.25rem 0.6rem;
+  cursor: pointer;
+}
+
+.lang-switch button + button {
+  border-left: 1px solid #d0d0d0;
+}
+
+.lang-switch button.active {
+  background: #2a78d6;
+  color: #fff;
+}
