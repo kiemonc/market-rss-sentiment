@@ -43,6 +43,7 @@ const validArticle = {
   content: 'full content',
   source: 'bloomberg',
   pubDate: '2024-01-01T00:00:00.000Z',
+  publishedAt: '2024-01-01T00:00:00.000Z',
   fetchedAt: '2024-01-01T00:00:01.000Z',
 };
 
@@ -111,6 +112,7 @@ describe('handleArticleSentiment', () => {
       expect.objectContaining({
         articleId: 'article-1',
         source: 'bloomberg',
+        publishedAt: validArticle.publishedAt,
         coins: sentimentResult,
       }),
       { merge: true }

@@ -151,6 +151,23 @@ export class ArticleService {
     return snapshot.docs.map((doc) => doc.data() as Article);
   }
 
+  /**
+   * Sentiment docs for articles published within [from, to] (inclusive ISO strings), for the
+   * sentiment-over-time chart. Range + orderBy on the one field needs only Firestore's automatic
+   * single-field index. Docs missing `publishedAt` (pre-denormalization, not yet backfilled — see
+   * src/scripts/backfill-sentiment-published-at.ts) are silently excluded by Firestore.
+   */
+  async getSentimentForRange(from: string, to: string): Promise<SentimentAnalysis[]> {
+    const sentimentQuery = query(
+      collection(this.firestore, environment.sentimentCollection),
+      where('publishedAt', '>=', from),
+      where('publishedAt', '<=', to),
+      orderBy('publishedAt')
+    );
+    const snapshot = await getDocs(sentimentQuery);
+    return snapshot.docs.map((doc) => doc.data() as SentimentAnalysis);
+  }
+
   /** Live view of a single article by id, or null if it doesn't exist. */
   watchArticle(id: string): Observable<Article | null> {
     return new Observable<Article | null>((subscriber) => {

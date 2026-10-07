@@ -28,6 +28,8 @@ export interface CoinSentiment {
 export interface SentimentAnalysis {
   articleId: string;
   source: string;
+  /** The article's `publishedAt`, denormalized for time-range queries. Absent on very old docs not yet backfilled. */
+  publishedAt?: string;
   analyzedAt: string;
   /** Coin ticker (e.g. "BTC") -> its sentiment analysis for this article. */
   coins: Record<string, CoinSentiment>;

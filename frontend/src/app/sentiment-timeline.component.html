@@ -1,0 +1,79 @@
+<div class="timeline-container">
+  <form class="filters" [formGroup]="filterForm">
+    <mat-form-field appearance="outline" class="filter-coins">
+      <mat-label>Cryptocurrencies</mat-label>
+      <mat-select formControlName="coins" multiple>
+        <mat-select-trigger>
+          @for (coin of filterForm.value.coins; track coin) {
+            <span class="coin-chip"><i class="swatch" [style.background]="colorFor(coin)"></i>{{ coin }}</span>
+          }
+        </mat-select-trigger>
+        @for (option of coinOptions; track option.coin) {
+          <mat-option [value]="option.coin" [disabled]="isCoinDisabled(option.coin)">
+            {{ option.coin }} <span class="option-count">({{ option.articles }})</span>
+          </mat-option>
+        }
+      </mat-select>
+      <mat-hint>Up to {{ maxCoins }}; (n) = articles in range</mat-hint>
+    </mat-form-field>
+
+    <mat-form-field appearance="outline" class="filter-date">
+      <mat-label>From</mat-label>
+      <input matInput type="date" formControlName="from" />
+    </mat-form-field>
+
+    <mat-form-field appearance="outline" class="filter-date">
+      <mat-label>To</mat-label>
+      <input matInput type="date" formControlName="to" />
+    </mat-form-field>
+
+    <mat-form-field appearance="outline" class="filter-half-life">
+      <mat-label>Memory (half-life)</mat-label>
+      <mat-select formControlName="halfLifeHours">
+        @for (option of halfLifeOptions; track option.hours) {
+          <mat-option [value]="option.hours">{{ option.label }}</mat-option>
+        }
+      </mat-select>
+    </mat-form-field>
+
+    <mat-slide-toggle formControlName="showPrices" class="filter-prices">Show price candles</mat-slide-toggle>
+  </form>
+
+  @if (!filterForm.value.coins?.length) {
+    <p class="note">Select at least one cryptocurrency to plot.</p>
+  }
+
+  <section class="chart-panel">
+    <div class="chart-canvas-wrap">
+      <canvas #canvas></canvas>
+    </div>
+    @if (coinsWithoutPrices.length) {
+      <p class="note">No Binance USDT price data for: {{ coinsWithoutPrices.join(', ') }}.</p>
+    }
+  </section>
+
+  <details class="method">
+    <summary>How the sentiment index is calculated</summary>
+    <p>
+      Every analyzed article gives each coin it mentions a signed impact <code>s</code> in [−1, 1] and a relevance
+      <code>w</code> in [0, 1]. The index at time <code>t</code> is a time-decayed, relevance-weighted average of
+      the articles published up to <code>t</code>:
+    </p>
+    <p class="formula">S(t) = Σ w·s·2<sup>−(t − tᵢ)/H</sup> / (k + Σ w·2<sup>−(t − tᵢ)/H</sup>)</p>
+    <ul>
+      <li><strong>H</strong> — the “memory” half-life: an article's influence halves every H.</li>
+      <li>
+        <strong>k = 0.5</strong> — a neutral prior worth half a fully relevant article. A single marginal article
+        can't swing the index to ±1, and with no fresh news the index drifts back toward 0.
+      </li>
+      <li>Only articles published <em>before</em> each point count, so the line never looks into the future.</li>
+      <li>Price candles come from Binance (<code>&lt;coin&gt;USDT</code>); with several coins they're shown as % change since the start of the range.</li>
+    </ul>
+  </details>
+
+  @if (loading) {
+    <div class="spinner-overlay">
+      <mat-progress-spinner mode="indeterminate" diameter="48"></mat-progress-spinner>
+    </div>
+  }
+</div>
