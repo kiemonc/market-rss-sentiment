@@ -113,6 +113,15 @@
       <button
         type="button"
         class="tb-btn tb-toggle"
+        [class.active]="filterForm.value.showDerivative"
+        [attr.aria-pressed]="filterForm.value.showDerivative"
+        (click)="toggle('showDerivative')"
+      >
+        <span class="tb-icon tb-icon-line" aria-hidden="true"></span>{{ 'timeline.toolbar.derivative' | t }}
+      </button>
+      <button
+        type="button"
+        class="tb-btn tb-toggle"
         [class.active]="filterForm.value.showArticles"
         [attr.aria-pressed]="filterForm.value.showArticles"
         (click)="toggle('showArticles')"
@@ -134,7 +143,7 @@
   }
 
   <section class="chart-panel">
-    <div class="chart-canvas-wrap" (dblclick)="resetZoom()">
+    <div class="chart-canvas-wrap" [class.with-derivative]="filterForm.value.showDerivative" (dblclick)="resetZoom()">
       <canvas #canvas></canvas>
     </div>
     @if (coinsWithoutPrices.length && filterForm.value.showPrices) {
@@ -172,6 +181,7 @@
       <li>{{ 'timeline.method.causal' | t }}</li>
       <li>{{ 'timeline.method.dots' | t }}</li>
       <li>{{ 'timeline.method.prices' | t }}</li>
+      <li>{{ 'timeline.method.derivative' | t }}</li>
     </ul>
   </details>
 

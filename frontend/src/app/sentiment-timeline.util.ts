@@ -127,3 +127,33 @@ export function timeGrid(from: number, to: number, maxPoints = 400): number[] {
   for (let t = Math.ceil(from / step) * step; t <= to; t += step) times.push(t);
   return times;
 }
+
+export interface SentimentDerivativePoint {
+  time: number;
+  /** Rate of change of the sentiment index, in index points per day. */
+  value: number;
+}
+
+const DAY_MS = 24 * HOUR_MS;
+
+/**
+ * Causal rate of change of the sentiment index at every time in `times`, per day:
+ *
+ *   D(t) = (S(t) − S(t − H)) / H
+ *
+ * The index jumps at every article and only decays in between, so its instantaneous derivative
+ * is a train of spikes plus a slow pull towards 0 — unreadable. Differencing over one half-life
+ * H instead smooths at the same time scale the index itself uses, and like S it only looks back.
+ *
+ * Same input requirements as `computeSentimentIndex`.
+ */
+export function computeSentimentDerivative(
+  observations: SentimentObservation[],
+  times: number[],
+  options: SentimentIndexOptions
+): SentimentDerivativePoint[] {
+  const { halfLifeMs } = options;
+  const now = computeSentimentIndex(observations, times, options);
+  const before = computeSentimentIndex(observations, times.map((t) => t - halfLifeMs), options);
+  return now.map((p, i) => ({ time: p.time, value: ((p.value - before[i].value) / halfLifeMs) * DAY_MS }));
+}

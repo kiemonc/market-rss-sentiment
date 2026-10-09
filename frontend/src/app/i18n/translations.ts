@@ -71,17 +71,21 @@ const en = {
   'timeline.toolbar.layers': 'Layers',
   'timeline.toolbar.candles': 'Candles',
   'timeline.toolbar.sentiment': 'Sentiment',
+  'timeline.toolbar.derivative': 'Derivative',
   'timeline.toolbar.articles': 'Articles',
   'timeline.toolbar.resetZoom': 'Reset zoom',
   'timeline.toolbar.hint': 'Scroll to zoom · drag to pan · double-click to reset',
   'timeline.axis.sentiment': 'Sentiment index (bearish ← 0 → bullish)',
   'timeline.axis.priceChange': 'Price change since start (%)',
   'timeline.axis.price': '{coin} price (USDT)',
+  'timeline.axis.derivative': 'dS/dt (per day)',
   'timeline.dataset.sentiment': '{coin} sentiment',
+  'timeline.dataset.derivative': '{coin} sentiment derivative',
   'timeline.dataset.articles': '{coin} articles',
   'timeline.dataset.price': '{coin} price',
   'timeline.tooltip.sentiment': '{label}: {value} (≈{evidence} articles of evidence)',
   'timeline.tooltip.article': '{coin} · {title} (impact {impact}, relevance {relevance}%)',
+  'timeline.tooltip.derivative': '{label}: {value} / day',
   'timeline.tooltip.untitled': 'Untitled article',
   'timeline.tooltip.openHint': 'Click to open the article (Ctrl/⌘-click: new tab)',
   'timeline.method.summary': 'How the sentiment index is calculated',
@@ -96,6 +100,8 @@ const en = {
     'Each dot is one article, placed where it moved the line; bigger dots are more relevant to the coin. Hover for its title and scores, click to open it.',
   'timeline.method.prices':
     'Price candles come from Binance (<coin>USDT); with several coins they’re shown as % change since the start of the range.',
+  'timeline.method.derivative':
+    'The lower pane shows the index’s rate of change, (S(t) − S(t − H)) / H, in index points per day. It’s taken over one half-life rather than instantaneously, since the index jumps at every article — above 0 sentiment is improving, below 0 it’s worsening or fading.',
 };
 
 export type TranslationKey = keyof typeof en;
@@ -168,17 +174,21 @@ const pl: Record<TranslationKey, string> = {
   'timeline.toolbar.layers': 'Warstwy',
   'timeline.toolbar.candles': 'Świece',
   'timeline.toolbar.sentiment': 'Sentyment',
+  'timeline.toolbar.derivative': 'Pochodna',
   'timeline.toolbar.articles': 'Artykuły',
   'timeline.toolbar.resetZoom': 'Resetuj powiększenie',
   'timeline.toolbar.hint': 'Kółko: powiększenie · przeciągnij: przesuń · dwuklik: reset',
   'timeline.axis.sentiment': 'Indeks sentymentu (spadkowy ← 0 → wzrostowy)',
   'timeline.axis.priceChange': 'Zmiana ceny od początku zakresu (%)',
   'timeline.axis.price': 'Cena {coin} (USDT)',
+  'timeline.axis.derivative': 'dS/dt (na dobę)',
   'timeline.dataset.sentiment': '{coin} sentyment',
+  'timeline.dataset.derivative': '{coin} pochodna sentymentu',
   'timeline.dataset.articles': '{coin} artykuły',
   'timeline.dataset.price': '{coin} cena',
   'timeline.tooltip.sentiment': '{label}: {value} (≈{evidence} art. w ocenie)',
   'timeline.tooltip.article': '{coin} · {title} (wpływ {impact}, istotność {relevance}%)',
+  'timeline.tooltip.derivative': '{label}: {value} / dobę',
   'timeline.tooltip.untitled': 'Artykuł bez tytułu',
   'timeline.tooltip.openHint': 'Kliknij, aby otworzyć artykuł (Ctrl/⌘ + klik: nowa karta)',
   'timeline.method.summary': 'Jak liczony jest indeks sentymentu',
@@ -194,6 +204,8 @@ const pl: Record<TranslationKey, string> = {
     'Każda kropka to jeden artykuł, w miejscu, w którym przesunął linię; większa kropka = bardziej istotny dla danej waluty. Najedź, aby zobaczyć tytuł i oceny, kliknij, aby go otworzyć.',
   'timeline.method.prices':
     'Świece cenowe pochodzą z Binance (<waluta>USDT); przy kilku walutach pokazywane są jako % zmiany od początku zakresu.',
+  'timeline.method.derivative':
+    'Dolny panel pokazuje tempo zmian indeksu, (S(t) − S(t − H)) / H, w punktach indeksu na dobę. Liczone jest w oknie jednego okresu półtrwania, a nie chwilowo, bo indeks skacze przy każdym artykule — powyżej 0 sentyment się poprawia, poniżej 0 pogarsza się lub wygasa.',
 };
 
 export type Lang = 'en' | 'pl';

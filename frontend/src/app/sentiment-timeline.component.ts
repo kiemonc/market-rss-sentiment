@@ -41,9 +41,11 @@ import {
 import {
   DEFAULT_PRIOR_WEIGHT,
   HOUR_MS,
+  SentimentDerivativePoint,
   SentimentIndexPoint,
   SentimentObservation,
   coinsByCoverage,
+  computeSentimentDerivative,
   computeSentimentIndex,
   observationsByCoin,
   timeGrid,
@@ -120,11 +122,14 @@ const ARTICLE_HIT_RADIUS = 8;
 const ARTICLE_POINT_BORDER = '#ffffff';
 /** Articles older than this many half-lives before `from` contribute < 2^-5 ≈ 3% and aren't loaded. */
 const LOOKBACK_HALF_LIVES = 5;
+/** Height of the sentiment/price pane vs. the derivative pane below it, when the latter is shown. */
+const MAIN_PANE_WEIGHT = 3;
+const DERIVATIVE_PANE_WEIGHT = 1;
 
 /** Half-life choices in hours; each has a `timeline.halfLife.<hours>` label. */
 export const HALF_LIFE_OPTIONS = [6, 12, 24, 72, 168] as const;
 
-type DatasetKind = 'sentiment' | 'articles' | 'price';
+type DatasetKind = 'sentiment' | 'derivative' | 'articles' | 'price';
 
 interface CoinOption {
   coin: string;
@@ -176,6 +181,7 @@ export class SentimentTimelineComponent implements AfterViewInit, OnDestroy {
     halfLifeHours: this.fb.control(24),
     showPrices: this.fb.control(true),
     showSentiment: this.fb.control(true),
+    showDerivative: this.fb.control(true),
     showArticles: this.fb.control(true),
     candleInterval: this.fb.control<CandleIntervalName | 'auto'>('auto'),
   });
@@ -264,7 +270,7 @@ export class SentimentTimelineComponent implements AfterViewInit, OnDestroy {
     return !range || exceedsCandleLimit(interval, range.fromMs, range.toMs);
   }
 
-  toggle(control: 'showPrices' | 'showSentiment' | 'showArticles'): void {
+  toggle(control: 'showPrices' | 'showSentiment' | 'showDerivative' | 'showArticles'): void {
     this.filterForm.controls[control].setValue(!this.filterForm.controls[control].value);
   }
 
@@ -305,7 +311,8 @@ export class SentimentTimelineComponent implements AfterViewInit, OnDestroy {
   }
 
   private async refresh(): Promise<void> {
-    const { coins, halfLifeHours, showPrices, showSentiment, showArticles, candleInterval } = this.filterForm.value;
+    const { coins, halfLifeHours, showPrices, showSentiment, showDerivative, showArticles, candleInterval } =
+      this.filterForm.value;
     const range = this.selectedRange();
     if (!range || !halfLifeHours) return;
     const { fromMs, toEndMs, toMs } = range;
@@ -337,11 +344,11 @@ export class SentimentTimelineComponent implements AfterViewInit, OnDestroy {
     const grid = timeGrid(fromMs, toMs);
     const series = selected.map((coin) => {
       const observations = byCoin.get(coin) ?? ([] as SentimentObservation[]);
-      const points = computeSentimentIndex(observations, withObservationTimes(grid, observations, fromMs, toMs), {
-        halfLifeMs,
-        priorWeight: DEFAULT_PRIOR_WEIGHT,
-      });
-      return { coin, points, articles: articlePoints(observations, points, fromMs, toMs) };
+      const options = { halfLifeMs, priorWeight: DEFAULT_PRIOR_WEIGHT };
+      const points = computeSentimentIndex(observations, withObservationTimes(grid, observations, fromMs, toMs), options);
+      // On the regular grid only: it's smoothed over a half-life anyway, so article times add nothing.
+      const derivative = computeSentimentDerivative(observations, grid, options);
+      return { coin, points, derivative, articles: articlePoints(observations, points, fromMs, toMs) };
     });
     const candles = selected
       .map((coin, i) => ({ coin, candles: prices[i] }))
@@ -359,6 +366,7 @@ export class SentimentTimelineComponent implements AfterViewInit, OnDestroy {
       this.canvasRef.nativeElement,
       this.buildConfig(
         showSentiment === false ? [] : series,
+        showDerivative === false ? [] : series,
         showArticles === false ? [] : series,
         candles,
         fromMs,
@@ -374,6 +382,9 @@ export class SentimentTimelineComponent implements AfterViewInit, OnDestroy {
   private tooltipLabel(item: TooltipItem<keyof import('chart.js').ChartTypeRegistry>): string {
     const t = this.i18n.t.bind(this.i18n);
     const raw = item.raw as { y?: number; evidence?: number; raw?: Candle } & Partial<ArticlePoint>;
+    if ((item.dataset as { kind?: DatasetKind }).kind === 'derivative') {
+      return t('timeline.tooltip.derivative', { label: item.dataset.label ?? '', value: formatSigned(raw.y ?? 0, 3) });
+    }
     if (raw.articleId) {
       const title = raw.title ?? t('timeline.tooltip.untitled');
       const shortTitle = title.length > MAX_TITLE_LENGTH ? `${title.slice(0, MAX_TITLE_LENGTH - 1)}…` : title;
@@ -408,6 +419,7 @@ export class SentimentTimelineComponent implements AfterViewInit, OnDestroy {
 
   private buildConfig(
     series: { coin: string; points: SentimentIndexPoint[] }[],
+    derivativeSeries: { coin: string; derivative: SentimentDerivativePoint[] }[],
     articleSeries: { coin: string; articles: ArticlePoint[] }[],
     prices: { coin: string; candles: Candle[] }[],
     fromMs: number,
@@ -438,6 +450,36 @@ export class SentimentTimelineComponent implements AfterViewInit, OnDestroy {
         order: 0, // draw on top of the candles
       })
     );
+
+    const derivativeDatasets: ChartDataset<'line', { x: number; y: number }[]>[] = derivativeSeries.map(
+      ({ coin, derivative }) => ({
+        type: 'line',
+        label: t('timeline.dataset.derivative', { coin }),
+        kind: 'derivative' as DatasetKind,
+        coin,
+        data: derivative.map((p) => ({ x: p.time, y: p.value })),
+        yAxisID: 'yDerivative',
+        borderColor: this.colorFor(coin),
+        backgroundColor: withAlpha(this.colorFor(coin), 0.15),
+        borderWidth: 1.5,
+        pointRadius: 0,
+        pointHoverRadius: 4,
+        fill: 'origin', // histogram-like area above/below zero, as in TradingView's oscillator panes
+        tension: 0,
+        order: 0,
+      })
+    );
+    const derivativeBound = Math.max(
+      ...derivativeSeries.flatMap((s) => s.derivative.map((p) => Math.abs(p.value))),
+      Number.EPSILON
+    );
+    // With the derivative shown, both left and right axes are split into the same two stacked
+    // panes; Chart.js only lines up stacked axes, so the right side needs an empty filler below.
+    const showDerivative = derivativeSeries.length > 0;
+    const pane = (main: boolean) =>
+      showDerivative
+        ? { stack: 'panes', stackWeight: main ? MAIN_PANE_WEIGHT : DERIVATIVE_PANE_WEIGHT }
+        : {};
 
     const articleDatasets: ChartDataset<'line', ArticlePoint[]>[] = articleSeries.map(({ coin, articles }) => ({
       type: 'line',
@@ -487,6 +529,7 @@ export class SentimentTimelineComponent implements AfterViewInit, OnDestroy {
       data: {
         datasets: [
           ...sentimentDatasets,
+          ...derivativeDatasets,
           ...(articleDatasets as unknown as ChartDataset<'line'>[]),
           ...(candleDatasets as unknown as ChartDataset<'line'>[]),
         ],
@@ -513,12 +556,33 @@ export class SentimentTimelineComponent implements AfterViewInit, OnDestroy {
             grid: { display: false },
             ticks: { maxRotation: 0, autoSkipPadding: 24 },
           },
+          // Chart.js stacks left-side axes top-down in *reverse* declaration order (right-side ones
+          // in declaration order), so this lower pane must be declared before ySentiment.
+          yDerivative: {
+            type: 'linear',
+            display: showDerivative,
+            position: 'left',
+            min: -derivativeBound * 1.1,
+            max: derivativeBound * 1.1,
+            ...pane(false),
+            title: { display: true, text: t('timeline.axis.derivative') },
+            grid: {
+              color: (ctx) => (ctx.tick.value === 0 ? ZERO_LINE_COLOR : GRIDLINE_COLOR),
+              lineWidth: (ctx) => (ctx.tick.value === 0 ? 1.5 : 1),
+            },
+            ticks: {
+              maxTicksLimit: 5,
+              // The top label would sit on the main pane's bottom one.
+              callback: (value, index, ticks) => (index === ticks.length - 1 ? '' : formatSigned(+value, 2)),
+            },
+          },
           ySentiment: {
             type: 'linear',
             display: series.length > 0 || articleSeries.length > 0,
             position: 'left',
             min: -sentimentBound,
             max: sentimentBound,
+            ...pane(true),
             title: { display: true, text: t('timeline.axis.sentiment') },
             grid: {
               color: (ctx) => (ctx.tick.value === 0 ? ZERO_LINE_COLOR : GRIDLINE_COLOR),
@@ -529,6 +593,7 @@ export class SentimentTimelineComponent implements AfterViewInit, OnDestroy {
             type: 'linear',
             position: 'right',
             display: prices.length > 0,
+            ...pane(true),
             title: {
               display: true,
               text: indexed ? t('timeline.axis.priceChange') : t('timeline.axis.price', { coin: prices[0]?.coin ?? '' }),
@@ -538,6 +603,7 @@ export class SentimentTimelineComponent implements AfterViewInit, OnDestroy {
               callback: (value) => (indexed ? `${formatSigned(+value)}%` : formatUsd(+value)),
             },
           },
+          yPriceFiller: { type: 'linear', position: 'right', display: false, ...pane(false) },
         },
         plugins: {
           legend: { position: 'top', labels: { usePointStyle: true } },
@@ -611,13 +677,15 @@ const crosshairPlugin: Plugin = {
 
     const x = chart.scales['x'];
     drawAxisLabel(ctx, formatCrosshairTime(x.getValueForPixel(pos.x) ?? 0, chart.options.locale), pos.x, x.top, 'top');
-    for (const id of ['ySentiment', 'yPrice']) {
+    for (const id of ['ySentiment', 'yDerivative', 'yPrice']) {
       const scale = chart.scales[id];
-      if (!scale || !scale.options.display) continue;
+      // Stacked panes each only label the part of the crosshair that crosses them.
+      if (!scale || !scale.options.display || pos.y < scale.top || pos.y > scale.bottom) continue;
       const value = scale.getValueForPixel(pos.y) ?? 0;
       const callback = (scale.options as unknown as { ticks: { callback: (v: number, i: number, t: unknown[]) => unknown } }).ticks.callback;
+      const left = scale.position === 'left';
       const text = id === 'ySentiment' ? formatSigned(value, 2) : String(callback.call(scale, value, 0, []));
-      drawAxisLabel(ctx, text, id === 'ySentiment' ? scale.right : scale.left, pos.y, id === 'ySentiment' ? 'left' : 'right');
+      drawAxisLabel(ctx, text, left ? scale.right : scale.left, pos.y, left ? 'left' : 'right');
     }
     ctx.restore();
   },

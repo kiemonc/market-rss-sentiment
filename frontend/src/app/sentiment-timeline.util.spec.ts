@@ -2,6 +2,7 @@ import { SentimentAnalysis } from './article.model';
 import { CANDLE_INTERVALS, candleIntervalFor, exceedsCandleLimit, indexCandles } from './price.service';
 import {
   coinsByCoverage,
+  computeSentimentDerivative,
   computeSentimentIndex,
   HOUR_MS,
   observationsByCoin,
@@ -69,6 +70,27 @@ describe('computeSentimentIndex', () => {
   it('clamps out-of-range sentiment values', () => {
     const [point] = computeSentimentIndex([{ time: 0, value: 5, weight: 1 }], [0], { ...OPTIONS, priorWeight: 0 });
     expect(point.value).toBe(1);
+  });
+});
+
+describe('computeSentimentDerivative', () => {
+  it('is zero with no evidence', () => {
+    const points = computeSentimentDerivative([], [0, HOUR_MS], OPTIONS);
+    expect(points.map((p) => p.value)).toEqual([0, 0]);
+  });
+
+  it('is the index change over the last half-life, expressed per day', () => {
+    const observations = [{ time: 0, value: 1, weight: 1 }];
+    const t = 5 * HOUR_MS;
+    const [now, before] = computeSentimentIndex(observations, [t - OPTIONS.halfLifeMs, t], OPTIONS).reverse();
+    const [point] = computeSentimentDerivative(observations, [t], OPTIONS);
+    expect(point.value).toBeCloseTo(((now.value - before.value) / OPTIONS.halfLifeMs) * 24 * HOUR_MS);
+    expect(point.value).toBeGreaterThan(0);
+  });
+
+  it('turns negative once a lone article’s influence is decaying', () => {
+    const [point] = computeSentimentDerivative([{ time: 0, value: 1, weight: 1 }], [20 * HOUR_MS], OPTIONS);
+    expect(point.value).toBeLessThan(0);
   });
 });
 

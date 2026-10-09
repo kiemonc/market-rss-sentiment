@@ -63,6 +63,11 @@
   touch-action: pan-y; /* horizontal gestures belong to the chart's pan/pinch */
 }
 
+/* Room for the derivative pane without squeezing the main one. */
+.chart-canvas-wrap.with-derivative {
+  height: 580px;
+}
+
 .method {
   color: #444;
   font-size: 0.9rem;
