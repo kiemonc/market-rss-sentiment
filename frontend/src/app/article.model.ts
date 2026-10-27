@@ -23,6 +23,8 @@ export interface CoinSentiment {
   weight: number;
   /** Signed impact on investor sentiment for this coin: positive = bullish, negative = bearish, in [-1,1]. */
   sentimentDiff: number;
+  /** True when the article's take on this coin is mainly a recap of past price moves. Absent on older analyses. */
+  priceRecap?: boolean;
 }
 
 export interface SentimentAnalysis {

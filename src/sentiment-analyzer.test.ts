@@ -11,7 +11,7 @@ const { mockGenerateContent, mockGoogleGenAICtor } = vi.hoisted(() => {
 });
 vi.mock('@google/genai', () => ({
   GoogleGenAI: mockGoogleGenAICtor,
-  Type: { OBJECT: 'OBJECT', ARRAY: 'ARRAY', STRING: 'STRING', NUMBER: 'NUMBER' },
+  Type: { OBJECT: 'OBJECT', ARRAY: 'ARRAY', STRING: 'STRING', NUMBER: 'NUMBER', BOOLEAN: 'BOOLEAN' },
 }));
 
 import { analyzeArticleSentiment } from './sentiment-analyzer';
@@ -72,6 +72,38 @@ describe('analyzeArticleSentiment', () => {
       BTC: { vector: [0.7, 0.1, 0.2], weight: 0.9, sentimentDiff: 0.5 },
       ETH: { vector: [0.2, 0.6, 0.2], weight: 0.4, sentimentDiff: -0.3 },
     });
+  });
+
+  it('keeps the priceRecap flag when the model returns it', async () => {
+    mockGenerateContent.mockResolvedValueOnce({
+      text: JSON.stringify({
+        coins: [
+          { coin: 'BTC', vector: [0.2, 0.2, 0.6], weight: 1, sentimentDiff: 0.1, priceRecap: true },
+          { coin: 'ETH', vector: [0.6, 0.1, 0.3], weight: 0.8, sentimentDiff: 0.5, priceRecap: false },
+        ],
+      }),
+    });
+
+    const result = await analyzeArticleSentiment({ title: 't', content: 'c' }, cfg);
+
+    expect(result.BTC.priceRecap).toBe(true);
+    expect(result.ETH.priceRecap).toBe(false);
+  });
+
+  it('drops stablecoins and equity tickers even if the model returns them', async () => {
+    mockGenerateContent.mockResolvedValueOnce({
+      text: JSON.stringify({
+        coins: [
+          { coin: 'BTC', vector: [0.7, 0.1, 0.2], weight: 0.9, sentimentDiff: 0.5, priceRecap: false },
+          { coin: 'usdc', vector: [0, 0, 1], weight: 0.1, sentimentDiff: 0, priceRecap: false },
+          { coin: 'MSTR', vector: [0.7, 0.1, 0.2], weight: 0.5, sentimentDiff: 0.4, priceRecap: false },
+        ],
+      }),
+    });
+
+    const result = await analyzeArticleSentiment({ title: 't', content: 'c' }, cfg);
+
+    expect(Object.keys(result)).toEqual(['BTC']);
   });
 
   it('returns an empty map when the article mentions no coins', async () => {

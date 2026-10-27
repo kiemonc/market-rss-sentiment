@@ -104,18 +104,26 @@ niezależnie — osobna subskrypcja tego samego topicu):
 1. `src/sentiment-analyzer.ts` woła Vertex AI (`@google/genai`, `vertexai: true`, model z
    `VERTEX_AI_MODEL`/`config.vertexAi.model`, domyślnie `gemini-2.5-flash-lite` — tańszy niż
    `gemini-2.5-flash`, wystarczający do tego prostego, strukturalnego zadania ekstrakcji) z
-   promptem proszącym o zidentyfikowanie każdej wspomnianej kryptowaluty; wymusza JSON przez
+   promptem proszącym o kryptowaluty, na które *nowa informacja* z artykułu realnie wpływa
+   (bez akcji/ETF-ów i stablecoinów, wzmianki "przy okazji" → `sentimentDiff` 0, sama relacja
+   z ruchu ceny, który już się wydarzył → blisko 0 — patrz niżej); wymusza JSON przez
    `responseSchema` (`responseMimeType: 'application/json'`), żeby nie trzeba było parsować
    wolnego tekstu. `thinkingConfig: { thinkingBudget: 0 }` wyłącza dynamiczne "myślenie" modelu —
    bez tego 2.5-owe modele domyślnie generują niewidoczne tokeny rozumowania rozliczane jak
    output, zbędne dla zadania bez wieloetapowego wnioskowania.
-2. Odpowiedź (tablica `{coin, vector, weight, sentimentDiff}`) jest zamieniana na
-   `SentimentAnalysis` — mapę ticker (uppercase) → `CoinSentiment`:
+2. Odpowiedź (tablica `{coin, vector, weight, sentimentDiff, priceRecap}`) jest zamieniana na
+   `SentimentAnalysis` — mapę ticker (uppercase) → `CoinSentiment`; tickery z
+   `EXCLUDED_TICKERS` (stablecoiny, akcje spółek krypto) są odrzucane także w kodzie, bo
+   flash-lite nie zawsze trzyma się wykluczeń z promptu:
    - `vector`: `[bullish, bearish, neutral]`, confidence w `[0,1]`, sumujące się w przybliżeniu do 1
    - `weight`: jak istotna/eksponowana jest dana moneta w artykule, `[0,1]`
    - `sentimentDiff`: podpisany wpływ artykułu na sentyment inwestorów wobec danej monety,
      `[-1,1]` — dodatnia wartość = pozytywny, ujemna = negatywny (czysta funkcja tego jednego
-     artykułu, bez odczytu wcześniejszego stanu z Firestore)
+     artykułu, bez odczytu wcześniejszego stanu z Firestore). Od 2026-10-27 prompt każe oceniać
+     wpływ *na przyszłość*, nie ton artykułu — analiza z tego dnia pokazała, że stary prompt
+     głównie powtarzał już widoczny ruch ceny (korelacja z poprzednią, nie następną zmianą ceny)
+   - `priceRecap` (opcjonalne, brak w starszych analizach): `true`, gdy artykuł o tej monecie
+     to głównie relacja z jej przeszłych ruchów ceny / analiza techniczna, a nie nowa informacja
 3. Wynik trafia do `sentiment/{articleId}` (`config.sentimentCollection`, domyślnie `sentiment`)
    jako `set({articleId, source, analyzedAt, coins}, {merge: true})` — idempotentne jak przy
    konsumencie Firestore.

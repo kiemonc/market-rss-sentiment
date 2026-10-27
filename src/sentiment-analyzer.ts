@@ -12,6 +12,7 @@ interface RawCoinSentiment {
   vector: number[];
   weight: number;
   sentimentDiff: number;
+  priceRecap?: boolean;
 }
 
 const RESPONSE_SCHEMA = {
@@ -34,34 +35,63 @@ const RESPONSE_SCHEMA = {
           sentimentDiff: {
             type: Type.NUMBER,
             description:
-              'Signed impact on investor sentiment for this coin: positive = bullish, negative = bearish, in [-1,1].',
+              'Signed forward-looking impact of new information on this coin: positive = bullish, negative = bearish, in [-1,1].',
+          },
+          priceRecap: {
+            type: Type.BOOLEAN,
+            description: "True if the article's take on this coin is mainly a report of its own past price/market moves.",
           },
         },
-        required: ['coin', 'vector', 'weight', 'sentimentDiff'],
+        required: ['coin', 'vector', 'weight', 'sentimentDiff', 'priceRecap'],
       },
     },
   },
   required: ['coins'],
 };
 
+// Prompt rules below come from comparing stored scores with Binance prices (2026-10): the old,
+// unconstrained prompt mostly echoed the price move the article was reporting (correlated with
+// the *previous* 24h return, not the next), and scored stocks, stablecoins and passing mentions
+// with the article's overall mood — noise that drowned out the actual news signal.
 function buildPrompt(article: ArticleForAnalysis): string {
-  return `You are a crypto-market sentiment analyst. Given the news article below, identify every \
-cryptocurrency it discusses or that it materially affects, and assess the article's impact on \
-investor sentiment for each one.
+  return `You are a crypto-market sentiment analyst. Given the news article below, identify the \
+cryptocurrencies whose outlook the article's NEW information materially affects, and assess the \
+forward-looking impact of that information on investor sentiment for each one.
 
-For each coin, use its uppercase ticker symbol (e.g. BTC, ETH, SOL) and provide:
+Which coins to include:
+- Only freely floating cryptoassets, by their uppercase ticker symbol (e.g. BTC, ETH, SOL).
+- Do NOT include stocks or other equities (e.g. COIN, MSTR, HOOD), ETFs, indices or fiat currencies.
+- Do NOT include stablecoins (USDT, USDC, ...) — their price is pegged, so sentiment doesn't apply.
+- A coin mentioned only in passing, as context or in a list, without the news affecting it, gets \
+a low weight and a sentimentDiff of 0 — or leave it out entirely.
+
+For each coin provide:
 - vector: [bullish, bearish, neutral] confidence scores in [0,1] that sum to roughly 1
-- weight: how prominently/relevantly this coin features in the article, in [0,1]
-- sentimentDiff: the signed impact on investor sentiment for this coin, in [-1,1] — positive means \
-the article is bullish for the coin, negative means bearish
+- weight: how central this coin is to the article, in [0,1] (1 = the article is about it)
+- sentimentDiff: the signed impact of the article's NEW information on the coin's outlook, in \
+[-1,1] — positive means bullish, negative means bearish. Judge what this news changes going \
+forward, not the article's tone: a price move that already happened is already priced in, so an \
+article that merely reports or recaps a rally, a drop, liquidations or chart levels scores close \
+to 0 unless it also brings new fundamental information (adoption, regulation, flows, hacks, \
+macro, protocol changes, ...). Reserve values beyond ±0.6 for clearly market-moving news.
+- priceRecap: true if the article's take on this coin is mainly a report of its own past price \
+or market moves (price action, technical analysis, liquidations, trader positioning); false if it \
+is driven by other news
 
-If the article mentions no cryptocurrencies, return an empty coins array.
+If no cryptocurrency qualifies, return an empty coins array.
 
 Title: ${article.title}
 
 Article:
 ${article.content}`;
 }
+
+// The prompt already excludes these, but flash-lite doesn't always comply. Stablecoins are pegged
+// (no price sentiment to track) and equities aren't crypto — both only add noise to coin indexes.
+const EXCLUDED_TICKERS = new Set([
+  'USDT', 'USDC', 'DAI', 'USDE', 'USDS', 'FDUSD', 'PYUSD', 'RLUSD', 'TUSD', 'USD1', 'EURC', 'USDG',
+  'COIN', 'MSTR', 'STRC', 'HOOD', 'CRCL', 'GLXY', 'MARA', 'RIOT', 'BMNR', 'SBET', 'TSLA', 'NVDA',
+]);
 
 let client: GoogleGenAI | undefined;
 function getClient(cfg: Config): GoogleGenAI {
@@ -102,10 +132,13 @@ async function analyzeArticleSentiment(article: ArticleForAnalysis, cfg: Config)
       console.warn('Skipping malformed coin entry from Vertex AI response:', JSON.stringify(c));
       continue;
     }
-    result[c.coin.toUpperCase()] = {
+    const ticker = c.coin.toUpperCase();
+    if (EXCLUDED_TICKERS.has(ticker)) continue;
+    result[ticker] = {
       vector: [c.vector[0], c.vector[1], c.vector[2]],
       weight: c.weight,
       sentimentDiff: c.sentimentDiff,
+      ...(typeof c.priceRecap === 'boolean' && { priceRecap: c.priceRecap }),
     };
   }
   return result;
